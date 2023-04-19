@@ -17,6 +17,7 @@ empleadoRol= pd.read_csv("empleadoRol.csv")
 rolProyecto= pd.read_csv("rolProyecto.csv") 
 # Funciones de Agregacion
 examen     = pd.read_csv("examen.csv")
+examen03    = pd.read_csv("examen03.csv")
 # OPERACIONES ENTRE DATABASES
 def get_alumnosBD():
     # Genera el dataframe "alumnosBD" que contiene las siguientes columnas 
@@ -564,13 +565,13 @@ consigna = ""
 
 consultaSQL = """
                 SELECT e1.Nombre, e1.Instancia, e1.Nota
-                FROM Examen AS e1
+                FROM examen AS e1
                 WHERE e1.Nota >= ALL (
                 SELECT e2.Nota
-                FROM Examen AS e2
+                FROM examen AS e2
                 WHERE e2.Instancia = e1.Instancia
                 )
-                ORDER BY e1.Instancia ASC, e.Nombre ASC;
+                ORDER BY e1.Instancia ASC, e1.Nombre ASC;
               """
 
 imprimirEjercicio(consigna, [examen], consultaSQL)
@@ -578,15 +579,156 @@ imprimirEjercicio(consigna, [examen], consultaSQL)
 consigna = ""
 
 consultaSQL = """
-                SELECT e1.Nombre, e1.Instancia, e1.Nota
-                FROM Examen AS e1
+                SELECT e1.Nombre as nombre, e1.Instancia, e1.Nota
+                FROM examen AS e1
                 WHERE NOT EXISTS (
                 SELECT *
-                FROM Examen AS e2
+                FROM examen AS e2
                 WHERE e2.Nombre = e1.Nombre AND
-                e2.Instancia LIKE ‘Recuperatorio%’
+                e2.Instancia LIKE 'Recuperatorio%'
                 )
                 ORDER BY e1.Nombre ASC, e1.Instancia ASC;
               """
 
 imprimirEjercicio(consigna, [examen], consultaSQL)
+
+#%% Clase 17/4
+
+#Integracion variables de python 
+
+
+umbralnota=7
+consigna = "Ejemplo 1"
+
+consultaSQL = """
+                SELECT DISTINCT Nombre, Instancia, Nota 
+                
+                FROM examen
+                WHERE Nota> $umbralnota
+              """
+
+imprimirEjercicio(consigna, [examen03], consultaSQL)
+
+consigna = "Ejemplo 2"
+
+consultaSQL = """
+                SELECT DISTINCT *
+                FROM examen03
+                WHERE Nota< 9
+              """
+
+imprimirEjercicio(consigna, [examen03], consultaSQL)
+
+consigna = "Ejemplo 3"
+
+consultaSQL = """
+                SELECT DISTINCT *
+                FROM examen03
+                WHERE Nota>= 9
+              """
+
+imprimirEjercicio(consigna, [examen03], consultaSQL)
+
+consigna = "Ejemplo 4"
+
+consultaSQL = """
+                SELECT DISTINCT *
+                FROM examen03
+                WHERE Nota>= 9
+                UNION
+                SELECT DISTINCT *
+                FROM examen03
+                WHERE Nota< 9
+              """
+
+imprimirEjercicio(consigna, [examen03], consultaSQL)
+
+consigna = "Ejemplo 5"
+
+consultaSQL = """
+                SELECT AVG(Nota) AS NotaPromedio
+                FROM examen03
+              """
+
+imprimirEjercicio(consigna, [examen03], consultaSQL)
+
+consigna = "Ejemplo 6"
+
+consultaSQL = """
+                SELECT AVG(CASE WHEN Nota IS NULL THEN 0 ELSE Nota END) AS NotaPromedio
+                FROM examen03;
+              """
+
+imprimirEjercicio(consigna, [examen03], consultaSQL)
+
+consigna = "Ejemplo 7"
+
+consultaSQL = """
+                SELECT Nombre,Sexo,Edad,Instancia,
+                CASE WHEN Nota is NULL
+                THEN 0
+                ELSE Nota
+                END
+                AS NotaSinNull
+                FROM examen03;
+              """
+
+imprimirEjercicio(consigna, [examen03], consultaSQL)
+
+consigna = "Desafio 1"
+
+consultaSQL = """
+                SELECT DISTINCT Nombre,Edad,Sexo
+                FROM examen;
+              """
+datosEstudiantes=sql^ consultaSQL
+
+consultaSQL= """
+                SELECT DISTINCT est.* ,exa.Nota AS Parcial01
+                FROM datosEstudiantes AS est
+                INNER JOIN examen AS exa
+                ON est.Nombre=exa.Nombre AND exa.Instancia = 'Parcial-01'
+            """
+datosEstudiantesParcial01 =sql^ consultaSQL
+print(datosEstudiantesParcial01)
+
+consultaSQL= """
+                SELECT DISTINCT est.* ,exa.Nota AS Parcial02
+                FROM datosEstudiantesParcial01 AS est
+                LEFT OUTER JOIN examen AS exa
+                ON est.Nombre=exa.Nombre AND exa.Instancia = 'Parcial-02' 
+            """
+datosEstudiantesParcial02 =sql^ consultaSQL
+print(datosEstudiantesParcial02)
+
+consultaSQL= """
+                SELECT DISTINCT est.* ,exa.Nota AS Recu01
+                FROM datosEstudiantesParcial02 AS est
+                LEFT OUTER JOIN examen AS exa
+                ON est.Nombre=exa.Nombre AND exa.Instancia = 'Recuperatorio-01' 
+            """
+datosEstudiantesRecu01 =sql^ consultaSQL
+print(datosEstudiantesRecu01)
+
+consultaSQL= """
+                SELECT DISTINCT est.* ,exa.Nota AS Recu02
+                FROM datosEstudiantesRecu01 AS est
+                LEFT OUTER JOIN examen AS exa
+                ON est.Nombre=exa.Nombre AND exa.Instancia = 'Recuperatorio-02'
+                ORDER BY est.Nombre ASC
+            """
+desafio01 =sql^ consultaSQL
+print(desafio01)
+
+consigna = "Desafio 2"
+
+consultaSQL = """
+                SELECT *, 
+                CASE WHEN ((Parcial01>=4 OR Recu01>=4) AND (Parcial02>=4 OR Recu02>=4))
+                THEN 'APROBO'
+                ELSE 'NO APROBO'
+                END AS Estado
+                FROM desafio01
+              """
+desafio02 =sql^ consultaSQL
+print(desafio02)
