@@ -467,7 +467,7 @@ imprimirEjercicio(consigna, [empleadoRol,rolProyecto], consultaSQL)
 
 #%% Funciones de agregacion
 
-consigna = "contar los elemnetos de una columna"
+consigna = "contar los elementos de una columna"
 
 consultaSQL = """
                 SELECT  count(*) AS cantidadExamenes
@@ -476,7 +476,7 @@ consultaSQL = """
 
 imprimirEjercicio(consigna, [examen], consultaSQL)
 
-consigna = "contar cuantos elementos hay para cada elto distinto de instancia"
+consigna = "contar cuantos elementos hay para cada elemento distinto de instancia"
 
 consultaSQL = """
                 SELECT  Instancia, COUNT(*) AS Asistieron
