@@ -1,4 +1,4 @@
-pais_id,pais,provincia_id,provincia,departamento,localidad,rubro,productos,categoria_id,categoria_desc,Certificadora_id,certificadora_deno,raz�n social,establecimiento
+pais_id,pais,provincia_id,provincia,departamento,localidad,rubro,productos,categoria_id,categoria_desc,Certificadora_id,certificadora_deno,razon social,establecimiento
 32,ARGENTINA,6,BUENOS AIRES,BARADERO,INDEFINIDA,AGRICULTURA,SOJA,1,Productores,2,OIA S.A.,ADD CROPS S.A.,BARADERO 1
 32,ARGENTINA,6,BUENOS AIRES,BARADERO,INDEFINIDA,AGRICULTURA,"GIRASOL, MIJO, RESIDUO VEGETAL",1,Productores,2,OIA S.A.,ADD CROPS S.A.,BARADERO 2
 32,ARGENTINA,6,BUENOS AIRES,BARADERO,INDEFINIDA,AGRICULTURA,"MAIZ, AVENA, CAMPO NATURAL",1,Productores,2,OIA S.A.,ADD CROPS S.A.,EL BUEN RETIRO
