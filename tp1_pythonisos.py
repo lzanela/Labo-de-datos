@@ -494,7 +494,7 @@ consulta_operador =  """
                   localidad_id,
                   clae2,
                   Certificadora_id as certificadora_id,
-                  categoria_id
+                  categoria_id,
                   rubro,
                   razon_social,
                   establecimiento,
@@ -502,7 +502,6 @@ consulta_operador =  """
             """
             
 df_operador = sql^consulta_operador
-df_operador
 
 # Tabla Certificadora
 consulta_certificadora =  """
