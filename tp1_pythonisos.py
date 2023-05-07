@@ -328,30 +328,50 @@ cantidad_de_localidades_padron = df_padron["localidad"].shape[0]
 
 print("Porcentaje de operadores sin localidad", str(round(cantidad_de_localidades_nan*100/cantidad_de_localidades_padron, 2)) + "%")
 
-"""Esto representa una gran parte de los operadores registrados. Decidimos, para cada operador, asignarle como localidad a localidad cabecera de departamento. De todas formas, es algo para lo que también se debería consultar su correctitud.
+"""Esto representa una gran parte de los operadores registrados. Además, existen localidades registradas en el padrón que no tienen correspondencia en localidades censales. Para éstas, les indefiniremos el valor, ya que no poseemos la suficiente información para asignarles una localidad registrada en Localidades Censales
 
 """
 
-#Movemos el valor a localidad
+localidades_censales = df_localidades["nombre"].dropna().unique()
+
+df_padron.loc[
+  (~df_padron["localidad"].isin(localidades_censales)) & (df_padron["localidad"].notna()), 
+  "localidad"
+] = np.nan
+
+"""Y decidimos, para cada operador que no posea localidad, asignarle como localidad a localidad cabecera de departamento. De todas formas, es algo para lo que también se debería consultar su correctitud."""
+
 departamento_ids = df_padron["departamento_id"].unique()
 
 # Creamos un diccionario que nos servirá para asignarle el ID de la
 # localidad perteneciente a cada operador registrado
 dict_localidad_id = {}
 
+# Primero completamos el diccionario de localidades con las que ya están
+localidades = df_padron["localidad"].dropna().unique()
+
+for localidad in localidades:
+  localidad_id = (
+    df_localidades[
+        df_localidades["nombre"] == localidad
+      ].iloc[0]["id"]
+  )
+  dict_localidad_id[localidad] = localidad_id
+
 # Aquí estamos consiguiendo, para cada ID de departamento,
 # la localidad cabecera. La misma inferimos que se puede obtener,
 # como la única en su departamento que posee un valor no vacío
-# en función 
+# en función.
 for id in departamento_ids:
   localidad = (
     df_localidades[
         (df_localidades["departamento_id"] == id) 
-        & df_localidades["funcion"].notna()
+        & (df_localidades["funcion"].notna())
       ].iloc[0]
   )
+
   dict_localidad_id[localidad["nombre"]] = localidad["id"]
-  df_padron.loc[df_padron["departamento_id"] == id, "localidad"] = localidad["nombre"]
+  df_padron.loc[(df_padron["departamento_id"] == id) & (df_padron["localidad"].isna()), "localidad"] = localidad["nombre"]
 
 cantidad_de_localidades_nan = df_padron["localidad"].isna().sum()
 cantidad_de_localidades_padron = df_padron["localidad"].shape[0]
