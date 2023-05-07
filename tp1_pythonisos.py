@@ -81,10 +81,10 @@ registros.head()
 """Vemos que hay una gran cantidad de establecimientos con valor NaN. Hemos notado que son aquellos que poseen como valor `Comercializadores` o `Elaboradores` en la columna `categoria`. Podríamos diferenciarlos gracias al atributo `razon_social`. Sin embargo, seguían habiendo repeticiones.
 
 Finalmente, decidimos indexar cada registro para utilizar el índice como clave.
-Primero, limpiaremos la tabla y la pasaremos a 1FN, al mismo tiempo.
+Primero, limpiaremos la tabla y la normalizaremos, al mismo tiempo.
 """
 
-df_padron.rename_axis('id').reset_index(inplace = True)
+df_padron["id"] = df_padron.index
 df_padron.head()
 
 """Analizamos qué errores de inconsistencias puede llegar a haber"""
@@ -99,7 +99,7 @@ consulta0 = """
 print(f"Posibles tuplas (pais_id, pais):\n {(sql ^ consulta0).iloc[0]}")
 
 consulta1 = """
-              SELECT DISTINCT provincia_id, provincia, departamento, localidad, rubro, productos, categoria_id, categoria_desc, Certificadora_id, certificadora_deno, razon_social, establecimiento
+              SELECT DISTINCT id, provincia_id, provincia, departamento, localidad, rubro, productos, categoria_id, categoria_desc, Certificadora_id, certificadora_deno, razon_social, establecimiento
               FROM df_padron
            """
 df_padron = sql ^ consulta1
@@ -270,6 +270,9 @@ for depto in deptos_erroneos:
         .iloc[0]
     )
     deptos_con_nombre_de_loc.append(depto)
+
+    # Al mismo tiempo, le asignamos un valor a la columna localidad
+    df_padron.loc[df_padron["departamento"] == depto, "localidad"] = depto
 
   else:
     deptos_erroneos2.append(depto)
@@ -486,7 +489,7 @@ for lista_productos in productos_raw:
 df_productos = pd.DataFrame({"producto": list(productos)})
 
 #Creamos tabla intermedia
-operadores = df_padron.index
+operadores = df_padron["id"].values
 mapping = []
 
 for i in range(len(operadores)):
@@ -511,6 +514,7 @@ df_salarios.dropna(inplace=True)
 # Tabla Operador
 consulta_operador =  """
                 SELECT DISTINCT
+                  id,
                   localidad_id,
                   clae2,
                   Certificadora_id as certificadora_id,
@@ -519,6 +523,7 @@ consulta_operador =  """
                   razon_social,
                   establecimiento,
                 FROM df_padron
+                ORDER BY localidad_id
             """
             
 df_operador = sql^consulta_operador
@@ -651,6 +656,6 @@ df_departamento.to_csv(r"departamento.csv", index=False)
 df_provincia.to_csv(r"provincia.csv", index=False)
 df_categoria.to_csv(r"categoria.csv", index=False)
 df_certificadora.to_csv(r"certificadora.csv", index=False)
-df_operador.to_csv(r"operador.csv", index_label="id")
+df_operador.to_csv(r"operador.csv", index=False)
 df_productos.to_csv(r"producto.csv", index=False)
 producto_por_operador.to_csv(r"producto_por_operador.csv", index=False)
