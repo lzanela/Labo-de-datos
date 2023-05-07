@@ -81,16 +81,10 @@ registros.head()
 """Vemos que hay una gran cantidad de establecimientos con valor NaN. Hemos notado que son aquellos que poseen como valor `Comercializadores` o `Elaboradores` en la columna `categoria`. Podríamos diferenciarlos gracias al atributo `razon_social`. Sin embargo, seguían habiendo repeticiones.
 
 Finalmente, decidimos indexar cada registro para utilizar el índice como clave.
-Primero, limpiaremos la tabla y la normalizaremos, al mismo tiempo.
+En este proceso, limpiaremos la tabla y la normalizaremos, al mismo tiempo. Comenzaremos eliminamos las primeras dos columnas, dado que no aportan información a la tabla (habiendo primero chequeado que los únicos valores que aparecen
+en las columnas pais y pais_id son ARGENTINA y 32 respectivamente). Aprovechamos, usando el DISTINCT, para borrar las filas repetidas. Luego, asignaremos un índice.
+
 """
-
-df_padron["id"] = df_padron.index
-df_padron.head()
-
-"""Analizamos qué errores de inconsistencias puede llegar a haber"""
-
-# Eliminamos las primeras dos columnas, dado que no aportan información a la tabla (habiendo primero chequeado que los únicos valores que aparecen
-# en las columnas pais y pais_id son ARGENTINA y 32 respectivamente). Aprovechamos, usando el DISTINCT, para borrar las filas repetidas.
 
 consulta0 = """
               SELECT DISTINCT pais_id, pais
@@ -99,10 +93,15 @@ consulta0 = """
 print(f"Posibles tuplas (pais_id, pais):\n {(sql ^ consulta0).iloc[0]}")
 
 consulta1 = """
-              SELECT DISTINCT id, provincia_id, provincia, departamento, localidad, rubro, productos, categoria_id, categoria_desc, Certificadora_id, certificadora_deno, razon_social, establecimiento
+              SELECT DISTINCT provincia_id, provincia, departamento, localidad, rubro, productos, categoria_id, categoria_desc, Certificadora_id, certificadora_deno, razon_social, establecimiento
               FROM df_padron
            """
 df_padron = sql ^ consulta1
+
+df_padron["id"] = df_padron.index
+df_padron.head()
+
+"""Analizamos qué errores de inconsistencias puede llegar a haber"""
 
 # Corroboramos que cada provincia se corresponda con un único id_provincia
 consulta2 = """
