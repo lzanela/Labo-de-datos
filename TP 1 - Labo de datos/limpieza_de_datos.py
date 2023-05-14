@@ -104,7 +104,7 @@ consulta0 = """
               SELECT DISTINCT pais_id, pais
               FROM df_padron
            """
-print(f"Posibles tuplas (pais_id, pais):\n {(sql ^ consulta0).iloc[0]}")
+print(f"Posibles tuplas (pais_id, pais):\n {(sql ^ consulta0)}")
 #%%----------------------------------------------------------------
 
 
