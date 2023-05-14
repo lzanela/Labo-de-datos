@@ -357,7 +357,11 @@ existir más de un salario promedio para ese año, mostrar el último del año 2
 """
 
 consultaSQL = """
-                   SELECT prov.nombre as provincia, sec.clae2_desc as actividad, sal.clae2 as clae2, ROUND(AVG(w_median),2) as salario_promedio
+                   SELECT 
+                    prov.nombre as provincia, 
+                    sec.clae2_desc as actividad, 
+                    sal.clae2 as clae2, 
+                    ROUND(AVG(w_median), 2) as salario_promedio
                    FROM df_salarios sal
                    INNER JOIN df_departamento dep
                    ON sal.departamento_id = dep.id
@@ -378,7 +382,11 @@ consultaSQL = """
 prov_clae2_cant_oper = sql ^ consultaSQL
 
 consultaSQL = """
-                   SELECT oper.provincia as provincia, sal.actividad as actividad, salario_promedio, cantidad_operadores
+                   SELECT 
+                    oper.provincia as provincia, 
+                    sal.actividad as actividad, 
+                    salario_promedio, 
+                    cantidad_operadores
                    FROM prov_clae2_salario sal
                    INNER JOIN prov_clae2_cant_oper oper
                    ON sal.provincia = oper.provincia AND sal.clae2 = oper.clae2
@@ -398,7 +406,11 @@ plt.close()
 """Realizamos un nuevo gráfico descartando los casos que posean más de 100 operadores."""
 
 consultaSQL = """
-                   SELECT oper.provincia as provincia, sal.actividad as actividad, salario_promedio, cantidad_operadores
+                   SELECT 
+                    oper.provincia as provincia, 
+                    sal.actividad as actividad, 
+                    salario_promedio, 
+                    cantidad_operadores
                    FROM prov_clae2_salario sal
                    INNER JOIN prov_clae2_cant_oper oper
                    ON sal.provincia = oper.provincia AND sal.clae2 = oper.clae2

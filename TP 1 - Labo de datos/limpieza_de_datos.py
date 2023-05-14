@@ -636,6 +636,7 @@ for lista_productos in productos_raw:
         productos.add(producto)
 
 df_productos = pd.DataFrame({"producto": list(productos)})
+df_productos.sort_values(by="producto")
 
 # Creamos tabla intermedia
 operadores = df_padron["id"].values
@@ -646,7 +647,7 @@ for i in range(len(operadores)):
         mapping.append({"operador_id": i, "producto": producto})
 
 producto_por_operador = pd.DataFrame(mapping)
-
+producto_por_operador.sort_values(by="operador_id")
 #%%----------------------------------------------------------------
 
 """Luego, observamos la fuente Salarios"""
