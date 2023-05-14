@@ -300,7 +300,7 @@ consulta_correspondencias = """
                     ELSE 0
                   END
                 ) AS cantidad_correspondencias,
-                COUNT (departamento) as cantidad_valores,
+                COUNT (DISTINCT departamento) as cantidad_valores,
                 cantidad_correspondencias*100/cantidad_valores as porcentaje
               FROM df_padron
            """
@@ -309,7 +309,7 @@ correspondencias
 #%%----------------------------------------------------------------
 
 """
-Específicamente, sólo el 14% posee correspondencia. Por lo tanto, intentaremos 
+Específicamente, sólo el 55% posee correspondencia. Por lo tanto, intentaremos 
 encontrar un departamento en la fuente de Localidades Censales que corresponda 
 con el departamento de cada Padrón.
 """
@@ -332,8 +332,6 @@ for depto in deptos_padron:
         ].iloc[0]
         dict_deptos[depto] = depto_id
 
-print(f"# Departamentos originalmente: {len(deptos_padron)}")
-print(f"# Departamentos erróneos: {len(deptos_erroneos)}")
 #%%----------------------------------------------------------------
 
 """Hemos notado que algunos departamentos corresponden a localidades.
