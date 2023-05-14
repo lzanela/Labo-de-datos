@@ -97,8 +97,10 @@ y pais_id son ARGENTINA y 32 respectivamente). Aprovechamos, usando el DISTINCT,
 para borrar las filas repetidas. Luego, asignaremos un índice.
 """
 
-# Eliminamos las primeras dos columnas, dado que no aportan información a la tabla (habiendo primero chequeado que los únicos valores que aparecen
-# en las columnas pais y pais_id son ARGENTINA y 32 respectivamente). Aprovechamos, usando el DISTINCT, para borrar las filas repetidas.
+# Eliminamos las primeras dos columnas, dado que no aportan información a 
+# la tabla (habiendo primero chequeado que los únicos valores que aparecen
+# en las columnas pais y pais_id son ARGENTINA y 32 respectivamente). 
+# Aprovechamos, usando el DISTINCT, para borrar las filas repetidas.
 
 consulta0 = """
               SELECT DISTINCT pais_id, pais
