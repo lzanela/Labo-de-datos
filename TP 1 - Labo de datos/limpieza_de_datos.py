@@ -50,7 +50,8 @@ ORIGINAL_CLAE2_COUNT = df_clae2.shape[0]
 
 """
 
-Primero, observamos que no hay un estándar en todas las tablas para llamar a los indefinidos. Los normalizaremos.
+Primero, observamos que no hay un estándar en todas las tablas para llamar a los 
+indefinidos. Los normalizaremos.
 """
 
 df_padron.replace(
