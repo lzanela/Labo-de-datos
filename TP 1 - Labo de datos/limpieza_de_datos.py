@@ -179,7 +179,7 @@ print(
 #%%----------------------------------------------------------------
 
 """
-Problema: 
+Problema: Localizar a los operadores
 
 Existe una gran cantidad de valores en `departamento` que no tienen una correspondencia 
 en las que están registradas en el INDEC, tanto en la fuente de Localidades Censales 
@@ -256,6 +256,36 @@ df_padron["departamento"] = df_padron["departamento"].replace(
     "CIUDAD AUTONOMA BUENOS AIRES", "CIUDAD AUTONOMA DE BUENOS AIRES"
 )
 df_localidades = df_localidades.apply(clean_buenos_aires, axis=1)
+#%%----------------------------------------------------------------
+"""
+Hay algunos casos de departamentos en Localidades Censales que no están 
+en el Diccionario de Departamentos.
+"""
+
+deptos=df_deptos["codigo_departamento_indec"].unique()
+deptos_erroneos = df_localidades.loc[
+    ~df_localidades["departamento_id"].isin(deptos), ("departamento_nombre", "departamento_id")
+]
+cant = len(deptos_erroneos["departamento_id"].unique())
+total = len(df_localidades["departamento_id"].unique())
+print(f"Porcentaje de departamentos en Localidades Censales que no están incluidos: {cant*100/total} %")
+deptos_erroneos
+#%%----------------------------------------------------------------
+"""
+Se observa que es una pequeña proporción. Los corregimos a mano, 
+ya que asumimos más confiabilidad para la fuente de
+Diccionario de Departamentos, para determinar los IDs. Para LA CALDERA
+no se ha encontrado ID en el Diccionario de Departamentos
+"""
+
+df_localidades.loc[
+    df_localidades["departamento_nombre"] == "USHUAIA", "departamento_id"
+] = 94014
+
+df_localidades.loc[
+    df_localidades["departamento_nombre"] == "RIO GRANDE", "departamento_id"
+] = 94007
+
 #%%----------------------------------------------------------------
 
 """Luego de normalizar, evaluaremos el porcentaje de correspondencias"""
@@ -723,12 +753,9 @@ df_categoria = sql ^ consulta_categoria
 
 """
 Para las siguientes tablas, de divisiones políticas, vale aclarar que la misma 
-informacion se encuentra en la fuente Diccionario Departamentos. Sin embargo, como 
+información se encuentra en la fuente Diccionario Departamentos. Sin embargo, como 
 ésta fue la utilizada principalmente para matchear los departamentos y localidades 
-del Padrón, crearemos las tablas a partir de ésta. Esta decisión se debe a que notamos 
-que existen inconsistencias con los IDs entre estas dos fuentes y donde la información 
-provista por el diccionario de departamentos está incluida en la de Localidades Censales, 
-y no tenemos forma de determinar cuál es la información correcta sin consultar.
+del Padrón, crearemos las tablas a partir de ésta.
 """
 
 # Tabla Provincia
