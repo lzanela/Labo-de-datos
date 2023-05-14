@@ -775,8 +775,8 @@ consulta_departamento = """
                   departamento_nombre as nombre,
                   provincia_id
                 FROM df_localidades
-                WHERE departamento_id != 'NaN' AND
-                 departamento_nombre != 'NaN'
+                WHERE departamento_id IS NOT NULL AND
+                 departamento_nombre IS NOT NULL
             """
 
 df_departamento = sql ^ consulta_departamento
@@ -788,7 +788,7 @@ consulta_municipio = """
                   municipio_nombre as nombre,
                   departamento_id
                 FROM df_localidades
-                WHERE municipio_id != 'NaN' and municipio_nombre != 'NaN'
+                WHERE municipio_id IS NOT NULL and municipio_nombre IS NOT NULL
             """
 
 df_municipio = sql ^ consulta_municipio
@@ -806,7 +806,7 @@ consulta_localidad = """
                   municipio_id,
                   departamento_id
                 FROM df_localidades
-                WHERE nombre != 'NaN' AND departamento_id != 'NaN'
+                WHERE nombre IS NOT NULL AND departamento_id IS NOT NULL
             """
 
 df_localidad = sql ^ consulta_localidad
