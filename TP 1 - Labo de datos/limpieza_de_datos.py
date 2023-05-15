@@ -522,6 +522,16 @@ una `clae2` para poder matchearlos al analizar los datos.
 rubros = df_padron["rubro"].unique()
 print(rubros)
 
+#%%----------------------------------------------------------------
+# Calculamos porcentaje de rubros que no poseen correspondencia con actividades 
+# registradas por el INDEC. 
+actividades = df_clae2["clae2_desc"].unique()
+
+rubros_sin_correspondencia = df_padron.loc[df_padron["rubro"].isin(actividades), "rubro"].unique()
+
+print(f"Porcentaje de rubros que no poseen correspondencia con el INDEC: {len(rubros_sin_correspondencia)*100/len(rubros)}")
+#%%----------------------------------------------------------------
+
 # Hemos notado que algunas tuplas poseen más de un rubro.
 mas_de_un_rubro = df_padron["rubro"].str.contains(",").value_counts()
 print("Columnas que poseen más de un rubro")
