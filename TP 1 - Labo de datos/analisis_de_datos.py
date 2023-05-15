@@ -101,8 +101,7 @@ consultaSQL = """
               """
 
 print("El listado de provincias sin operadores")
-
-sql ^ consultaSQL
+print(sql ^ consultaSQL)
 #%%----------------------------------------------------------------
 """
 ii) ¿Existen departamentos que no presentan Operadores Orgánicos
@@ -130,7 +129,11 @@ print(
 )
 
 print("El listado de departamentos sin operadores es")
-operadores_por_departamento
+print(operadores_por_departamento["departamento"])
+
+departamentos_sin_operadores = list(operadores_por_departamento["departamento"])
+departamentos_sin_operadores = ', '.join(departamentos_sin_operadores)
+print(departamentos_sin_operadores)
 #%%----------------------------------------------------------------
 """iii) ¿Cuál es la actividad que más operadores tiene?"""
 
@@ -166,7 +169,7 @@ consultaSQL = """
                      SELECT 
                       w_median AS salario,
                      FROM df_salarios reg_salarial
-                     WHERE clae2 = 10 AND fecha LIKE '2022-%'
+                     WHERE clae2 = 10 AND fecha LIKE '2022-12-01'
                    )
               """
 
@@ -212,6 +215,7 @@ consultaSQL = """
                     END AS anio
                    FROM df_salarios
                    GROUP BY anio
+                   ORDER BY anio
               """
 
 prom_salarial_nacional = sql ^ consultaSQL
@@ -258,6 +262,17 @@ consultaSQL = """
 prom_salarial_provincial = sql ^ consultaSQL
 
 prom_salarial_provincial
+
+#%%
+consultaSQL = """
+                   SELECT
+                    ROUND(STDDEV(promedio), 2) as desvio,
+                   FROM prom_salarial_provincial
+              """
+desvio_promedio_provincial = sql ^ consultaSQL
+
+desvio_promedio_provincial
+
 #%%----------------------------------------------------------------
 """
 
@@ -521,7 +536,7 @@ consultaSQL = """
                    SELECT  DISTINCT fecha, count(DISTINCT provincia) AS cant_provincia
                    FROM salarios_prov
                    GROUP BY fecha
-                   HAVING cant_provincia = 23
+                   HAVING cant_provincia = 24
                    ORDER BY fecha DESC
               """
 
@@ -529,7 +544,7 @@ provs_por_fecha = sql ^ consultaSQL
 provs_por_fecha
 #%%----------------------------------------------------------------
 """
-Resulta que para la fecha 2022-12-01 las 23 provincias cargaron datos, entonces usaremos 
+Resulta que para la fecha 2022-12-01 las 24 provincias cargaron datos, entonces usaremos 
 esa fecha. También, para estudiar la distribución, nos interesaría descartar los salarios 
 que sean anómalos.
 """
