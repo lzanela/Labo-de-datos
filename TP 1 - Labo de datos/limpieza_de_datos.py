@@ -5,6 +5,8 @@ Trabajo Práctico Nº1
 Materia Laboratorio de Datos, FCEyN UBA
 1er Cuatrimestre 2023
 
+Grupo: Pythonisos
+
 Integrantes: Nicolás Rozenberg, Joaquín Viera, Luca Zanela. 
 
 Sección: Limpieza de datos.

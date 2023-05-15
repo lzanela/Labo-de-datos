@@ -5,6 +5,8 @@ Trabajo Práctico Nº1
 Materia Laboratorio de Datos, FCEyN UBA
 1er Cuatrimestre 2023
 
+Grupo: Pythonisos
+
 Integrantes: Nicolás Rozenberg, Joaquín Viera, Luca Zanela. 
 
 Sección: Análisis de los Datos.
@@ -75,7 +77,7 @@ operadores_por_provincia = sql ^ consultaSQL
 
 
 print("El listado de cantidad de operadores por provincia")
-operadores_por_provincia
+print(operadores_por_provincia)
 #%%----------------------------------------------------------------
 """
 Como es conocido, hay 24 provincias en Argentina, que es el tamaño del dataframe de 
