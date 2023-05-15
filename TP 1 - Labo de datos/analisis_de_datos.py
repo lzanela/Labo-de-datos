@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-MODEL_ROOT_PATH = "./modelo/"
+MODEL_ROOT_PATH = "./TablasLimpias/"
 
 categoria_csv = f"{MODEL_ROOT_PATH}categoria.csv"
 registro_salarial_csv = f"{MODEL_ROOT_PATH}registro_salarial.csv"

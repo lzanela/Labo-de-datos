@@ -22,7 +22,7 @@ import numpy as np
 
 #%%----------------------------------------------------------------
 
-SOURCES_ROOT_PATH = "./fuentes/"
+SOURCES_ROOT_PATH = "./TablasOriginales/"
 
 padron_csv = (
     f"{SOURCES_ROOT_PATH}padron-de-operadores-organicos-certificados-MODIFICADO1.csv"
@@ -871,7 +871,7 @@ df_registro_salarial = sql ^ consulta_registro_salarial
 Exportación del modelo
 """
 
-MODEL_ROOT_PATH = "./modelo/"
+MODEL_ROOT_PATH = "./TablasLimpias/"
 
 df_registro_salarial.to_csv(f"{MODEL_ROOT_PATH}registro_salarial.csv", index=False)
 df_letra.to_csv(f"{MODEL_ROOT_PATH}letra.csv", index=False)
