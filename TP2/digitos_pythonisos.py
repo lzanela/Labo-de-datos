@@ -33,7 +33,7 @@ df = pd.read_csv('./data/mnist_desarrollo.csv', header=None)
 df.head()
 #%%----------------------------------------------------------------
 # Podemos deducir que la primera columna corresponde a las clases
-# (dígitos del 1 al 9). Renombramos las columnas 
+# (dígitos del 0 al 9). Renombramos las columnas 
 # para que la primera se llame 'classes', y todas las demás 
 # les asignamos un número según el orden.
 
@@ -74,4 +74,8 @@ classes.value_counts()*100/len(df)
 # ensamblaje de modelos.
 
 utils.plot_digit(df, 15)
+# %%
+
+
+df_simple  = df[df["class"].isin([0, 1])]
 # %%
