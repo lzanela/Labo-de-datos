@@ -55,8 +55,12 @@ plt.show()
 plt.close()
 #%%----------------------------------------------------------------
 # Observamos que hay ciertas clases que están desbalanceadas
-# con el resto (principalmente el 1 y el 7, con el 5). Calculamos
-# la mediana de la cantidad de ocurrencias, y para todas las clases que
+# con el resto (principalmente el 1 y el 7, con el 5). 
+
+
+#%%----------------------------------------------------------------
+
+# Calculamos la mediana de la cantidad de ocurrencias, y para todas las clases que
 # posean una cantidad de registros mayor, nos quedamos con un subconjunto
 # aleatorio.
 
@@ -74,8 +78,9 @@ classes.value_counts()*100/len(df)
 # ensamblaje de modelos.
 
 utils.plot_digit(df, 15)
-# %%
+#%%----------------------------------------------------------------
+# Obtenemos el dataset binario
 
 
-df_simple  = df[df["class"].isin([0, 1])]
+df_binary  = df[df["class"].isin([0, 1])]
 # %%
