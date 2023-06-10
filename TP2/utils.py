@@ -16,26 +16,35 @@ Descripción: Funciones auxiliares utilizadas para el análisis.
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
-RANDOM_SEED=42
-
 import numpy as np
 from itertools import product
 
-def kfold_cross_validation(X, y, model, param_grid, k=5):
+RANDOM_SEED=42
+
+
+
+def kfold_cross_validation(X, y, model, param_grid, score_metric, k=5):
+    """
+    
+    """
     rng = np.random.default_rng(RANDOM_SEED)
     n_samples = len(X)
     indices = np.arange(n_samples)
+
+    # Realizamos un
     rng.shuffle(indices)
 
     fold_size = n_samples // k
-    scores = []
+    scores = {}
 
     for fold in range(k):
         start = fold * fold_size
         end = start + fold_size
 
+        # Datos de testing en el fold
         val_indices = indices[start:end]
+
+        #Datos de training
         train_indices = np.concatenate((indices[:start], indices[end:]))
 
         X_train, y_train = X[train_indices], y[train_indices]
@@ -57,6 +66,17 @@ def kfold_cross_validation(X, y, model, param_grid, k=5):
         scores.append(best_score)
 
     return scores, best_params
+
+
+def rescale_features(X: pd.DataFrame):
+    for feature in X.columns:
+        min_value = np.min(X[feature])
+        max_value = np.max(X[feature])
+        X[feature] = X[feature].apply(
+            lambda x: (x - min_value) / (max_value - min_value)
+        )
+    
+
 
 def plot_digit(df, index):
     digit = df.drop("class", axis=1).iloc[index, :].to_numpy()

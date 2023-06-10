@@ -134,22 +134,33 @@ pca_binary.n_components = 3
 pca_data_binary = pca_binary.fit_transform(df_binary.drop("class", axis=1))
 pca_df_binary = pd.DataFrame(data = pca_data_binary, columns = ["PC1", "PC2", "PC3"])
 pca_df_binary["class"] = df_binary["class"]
-
+pca_df.head()
 
 #%%----------------------------------------------------------------
 X=pca_df_binary.drop("class", axis=1)
 Y=pca_df_binary["class"]
+
+# Reescalamos features entre 0 y 1
+utils.rescale_features(X)
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3) # 70% para train y 30% para test
 
 model = KNeighborsClassifier(n_neighbors = 5)
 model.fit(X_train, Y_train)
 Y_pred = model.predict(X_test)
-print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
 cm = metrics.confusion_matrix(Y_test, Y_pred)
 
 disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm,
                                 display_labels=model.classes_)
 disp.plot()
+print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
+
+# Tomamos a 0 como la clase Verdadera, ya que posee
+# menor muestra. 
+print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
+print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
+print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+
+
 #%%----------------------------------------------------------------
 
 
@@ -171,7 +182,6 @@ classes.value_counts()*100/len(df)
 # los resultados. Sin embargo, esperamos que se corregirá realizando
 # ensamblaje de modelos.
 
-utils.plot_digit(df, 15)
 #%%----------------------------------------------------------------
 
 # %%
