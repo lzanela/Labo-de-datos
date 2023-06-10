@@ -70,29 +70,86 @@ print(f"Clase a representar: {df.iloc[random_index]['class']}")
 # entrenar los modelos de forma performante
 
 pca = PCA()
-pca.n_components = 2
+pca.n_components = 4
 pca_data = pca.fit_transform(df.drop("class", axis=1))
-pca_df = pd.DataFrame(data = pca_data, columns = ["PC1", "PC2"])
+pca_df = pd.DataFrame(data = pca_data, columns = ["PC1", "PC2", "PC3","PC4"])
 pca_df["class"] = df["class"]
 
 #%%----------------------------------------------------------------
-# Graficamos
+# Graficamos un scatterplot comparando el PCA1 con el PCA2
 
-sns.scatterplot(data=pca_df, x="PC1", y="PC2", hue="class")
+sns.scatterplot(data=pca_df, x="PC1", y="PC2", hue="class", palette="bright")
 plt.show()
 plt.close()
 
-print(pca.explained_variance_ratio_)
-print(f"Varianza explicada: {round(sum(pca.explained_variance_ratio_), 2)*100}%")
+print(pca.explained_variance_ratio_[0:2])
+print(f"Varianza explicada: {round(sum(pca.explained_variance_ratio_[0:2]), 2)*100}%")
 #%%----------------------------------------------------------------
-# Se ven algo solapados, sin embargo las componentes principales
-# solo explican el 17% de la varianza. E igualmente algunos dígitos
-# se distinguen de los demás, como el 0.
-#%%----------------------------------------------------------------
-# Obtenemos el dataset binario
+# Se ven en cierto punto solapados, sin embargo las componentes principales graficados
+# solo explican el 17% de la varianza. A pesar de esto, algunos dígitos
+# se distinguen de los demás, como el 0. Observemos qué áreas 
+# son explican la mayor varianza.
 
+# Obtengo la correlación de cada pixel para cada componente principal
+components = pca.components_
+
+pixel_weights = np.abs(components)
+pixel_weights_image = pixel_weights.reshape(-1, 28, 28)
+
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 10))
+for i, ax in enumerate(axes.flat):
+    ax.imshow(pixel_weights_image[i], cmap='hot', vmin=0, vmax=np.max(pixel_weights_image[i]))
+    ax.set_axis_off()
+    ax.set_title(f"PCA {i+1}")
+
+plt.tight_layout()
+plt.show()
+
+# Observamos que los píxeles que están a los costados 
+# tienen una correlación prácticamente nula con las 
+# componentes principales, por lo que nos son de poco interés.
+# También, notar que existe menor correlación arriba que abajo.
+#%%----------------------------------------------------------------
+# Obtenemos el dataset binario, y vemos si 
+# las clases están balanceadas (como observamos arriba
+# no deberían estarlo)
 
 df_binary  = df[df["class"].isin([0, 1])]
+df_binary.reset_index(drop=True, inplace=True)
+
+classes = df_binary["class"]
+counts = classes.value_counts()
+
+counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
+plt.show()
+plt.close()
+
+print(f"Diferencia entre ocurrencias de 0 y 1: {np.abs(counts[1]-counts[0])}")
+#%%----------------------------------------------------------------
+# Comencemos eligiendo como primeros atributos para la list
+# la clasificación por kNN, las 3 componentes principales.
+
+pca_binary = PCA()
+pca_binary.n_components = 3
+pca_data_binary = pca_binary.fit_transform(df_binary.drop("class", axis=1))
+pca_df_binary = pd.DataFrame(data = pca_data_binary, columns = ["PC1", "PC2", "PC3"])
+pca_df_binary["class"] = df_binary["class"]
+
+
+#%%----------------------------------------------------------------
+X=pca_df_binary.drop("class", axis=1)
+Y=pca_df_binary["class"]
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3) # 70% para train y 30% para test
+
+model = KNeighborsClassifier(n_neighbors = 5)
+model.fit(X_train, Y_train)
+Y_pred = model.predict(X_test)
+print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
+cm = metrics.confusion_matrix(Y_test, Y_pred)
+
+disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm,
+                                display_labels=model.classes_)
+disp.plot()
 #%%----------------------------------------------------------------
 
 
