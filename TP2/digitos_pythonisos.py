@@ -57,6 +57,9 @@ counts = classes.value_counts()
 counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
 plt.show()
 plt.close()
+
+print("Media: ", counts.mean())
+print("Desvío estándar: ", counts.std())
 #%%----------------------------------------------------------------
 # Observamos que hay ciertas clases que están desbalanceadas
 # con el resto (principalmente el 1 y el 7, con el 5). 
@@ -115,10 +118,10 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout()
 plt.show()
 
-# Observamos que los píxeles que están a los costados 
-# tienen una correlación prácticamente nula con las 
+# Observamos que los píxeles que están en los bordes 
+# tienen una influencia prácticamente nula con las 
 # componentes principales, por lo que nos son de poco interés.
-# También, notar que existe menor correlación arriba que abajo.
+# También, notar que existe menor influencia arriba que abajo.
 #%%----------------------------------------------------------------
 # Obtenemos el dataset binario, y vemos si 
 # las clases están balanceadas (como observamos arriba
@@ -134,10 +137,10 @@ counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
 plt.show()
 plt.close()
 
-print(f"Diferencia entre ocurrencias de 0 y 1: {np.abs((counts[1]-counts[0])*100/len(df_binary))} %")
+print(f"Diferencia de porcentaje entre ocurrencias de 0 y 1: {np.abs((counts[1]-counts[0])*100/len(df_binary))} %")
 # Observamos un pequeño desbalanceo, donde la clase 1 posee un 6% más muestras que la clase 0
 #%%----------------------------------------------------------------
-# Comencemos eligiendo como primeros atributos para la list
+# Comencemos eligiendo como primeros atributos para la
 # la clasificación por kNN, las 3 componentes principales.
 
 pca_binary = PCA(n_components=3)
@@ -379,35 +382,17 @@ for max_depth in max_depths:
     precision_scores.append(
         utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
     )
-    recall_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.recall_score, labels=Y.unique(), average="macro")
-    )
-    f1_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.f1_score, labels=Y.unique(), average="macro")
-    )
 
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
-plt.xlabel("K")
+plt.xlabel("Profundidad máxima")
 plt.ylabel("Exactitud promedio")
 plt.show()
 plt.close()
 
 plt.plot(max_depths, precision_scores)
-plt.xlabel("K")
+plt.xlabel("Profundidad máxima")
 plt.ylabel("Precisión promedio")
-plt.show()
-plt.close()
-
-plt.plot(max_depths, recall_scores)
-plt.xlabel("K")
-plt.ylabel("Recall promedio")
-plt.show()
-plt.close()
-
-plt.plot(max_depths, f1_scores)
-plt.xlabel("K")
-plt.ylabel("F1 score promedio")
 plt.show()
 plt.close()
 
@@ -435,35 +420,23 @@ for max_depth in max_depths:
     precision_scores.append(
         utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
     )
-    recall_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.recall_score, labels=Y.unique(), average="macro")
-    )
-    f1_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.f1_score, labels=Y.unique(), average="macro")
-    )
+
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
-plt.xlabel("K")
+plt.xlabel("Profundidad máxima")
 plt.ylabel("Exactitud promedio")
 plt.show()
 plt.close()
 
 plt.plot(max_depths, precision_scores)
-plt.xlabel("K")
+plt.xlabel("Profundidad máxima")
 plt.ylabel("Precisión promedio")
 plt.show()
 plt.close()
 
-plt.plot(max_depths, recall_scores)
-plt.xlabel("K")
-plt.ylabel("Recall promedio")
-plt.show()
-plt.close()
+#%%----------------------------------------------------------------
 
-plt.plot(max_depths, f1_scores)
-plt.xlabel("K")
-plt.ylabel("F1 score promedio")
-plt.show()
-plt.close()
-
+best_max_depth = max_depths[np.argmax(accuracy_scores)]
+print(f"Profundidad óptima: {best_max_depth}")
+#%%----------------------------------------------------------------
 # %%
