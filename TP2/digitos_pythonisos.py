@@ -246,8 +246,6 @@ for i in range(3):
 #%%----------------------------------------------------------------
 
 for subset in subsets:
-    print("Píxeles", subset)
-
     df_pixels_grid = df_binary.loc[:, (str(pixel) for pixel in subset)]
     X=df_pixels
     Y=df_binary["class"]
