@@ -147,7 +147,7 @@ pca_binary = PCA(n_components=3)
 pca_data_binary = pca_binary.fit_transform(df_binary.drop("class", axis=1))
 pca_df_binary = pd.DataFrame(data = pca_data_binary, columns = ["PC1", "PC2", "PC3"])
 pca_df_binary["class"] = df_binary["class"]
-pca_df.head()
+pca_df_binary.head()
 
 #%%----------------------------------------------------------------
 X=pca_df_binary.drop("class", axis=1)
@@ -182,6 +182,8 @@ pixels = []
 for component in pca_binary.components_:
     pixel = np.argmax(np.abs(component))
     pixels.append(pixel)
+
+print("Pixels", pixels)
 
 positions = np.zeros(784)
 for pixel in pixels:
@@ -238,12 +240,14 @@ subsets = [list(rng.choice(grid, 4, replace=False))]
 
 for i in range(3):
     last_subset = subsets[i]
-    new_subset = [*last_subset, *rng.choice(grid, 1, replace=False)]
+    new_subset = [*last_subset, *rng.choice(list(set(grid)-set(last_subset)), 1, replace=False)]
     subsets.append(new_subset)
 
 #%%----------------------------------------------------------------
 
 for subset in subsets:
+    print("Píxeles", subset)
+
     df_pixels_grid = df_binary.loc[:, (str(pixel) for pixel in subset)]
     X=df_pixels
     Y=df_binary["class"]
