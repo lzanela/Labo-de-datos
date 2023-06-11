@@ -23,19 +23,16 @@ RANDOM_SEED=42
 
 
 
-def kfold_cross_validation(X, y, model, param_grid, score_metric, k=5):
-    """
-    
-    """
+def kfold_cross_validation(X, y, model, score_metric, k=5, **score_params):
     rng = np.random.default_rng(RANDOM_SEED)
     n_samples = len(X)
     indices = np.arange(n_samples)
 
-    # Realizamos un
+    # Reordenamos los índices aleatoriamente.
     rng.shuffle(indices)
 
     fold_size = n_samples // k
-    scores = {}
+    scores = []
 
     for fold in range(k):
         start = fold * fold_size
@@ -47,25 +44,16 @@ def kfold_cross_validation(X, y, model, param_grid, score_metric, k=5):
         #Datos de training
         train_indices = np.concatenate((indices[:start], indices[end:]))
 
-        X_train, y_train = X[train_indices], y[train_indices]
-        X_val, y_val = X[val_indices], y[val_indices]
+        X_train, y_train = X.iloc[train_indices, :], y[train_indices]
+        X_val, y_val = X.iloc[val_indices, :], y[val_indices]
 
-        best_score = 0
-        best_params = {}
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_val)
+        score = score_metric(y_pred, y_val, **score_params)
 
-        for params in product(*param_grid.values()):
-            param_combination = dict(zip(param_grid.keys(), params))
-            model.set_params(**param_combination)
-            model.fit(X_train, y_train)
-            score = model.score(X_val, y_val)
+        scores.append(score)
 
-            if score > best_score:
-                best_score = score
-                best_params = param_combination
-
-        scores.append(best_score)
-
-    return scores, best_params
+    return np.mean(scores)
 
 
 def rescale_features(X: pd.DataFrame):
@@ -90,7 +78,6 @@ def plot_digit(df, index):
 def random_subset(df, column, k):
     subset = pd.DataFrame(columns=df.columns)
     classes = df[column].unique()
-    
     for c in classes:
         class_rows = df[df[column] == c]
         if len(class_rows) > k:
