@@ -118,10 +118,10 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout()
 plt.show()
 
-# Observamos que los píxeles que están a los costados 
-# tienen una correlación prácticamente nula con las 
+# Observamos que los píxeles que están en los bordes 
+# tienen una influencia prácticamente nula con las 
 # componentes principales, por lo que nos son de poco interés.
-# También, notar que existe menor correlación arriba que abajo.
+# También, notar que existe menor influencia arriba que abajo.
 #%%----------------------------------------------------------------
 # Obtenemos el dataset binario, y vemos si 
 # las clases están balanceadas (como observamos arriba
