@@ -379,35 +379,17 @@ for max_depth in max_depths:
     precision_scores.append(
         utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
     )
-    recall_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.recall_score, labels=Y.unique(), average="macro")
-    )
-    f1_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.f1_score, labels=Y.unique(), average="macro")
-    )
 
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
-plt.xlabel("K")
+plt.xlabel("Profundidad máxima")
 plt.ylabel("Exactitud promedio")
 plt.show()
 plt.close()
 
 plt.plot(max_depths, precision_scores)
-plt.xlabel("K")
+plt.xlabel("Profundidad máxima")
 plt.ylabel("Precisión promedio")
-plt.show()
-plt.close()
-
-plt.plot(max_depths, recall_scores)
-plt.xlabel("K")
-plt.ylabel("Recall promedio")
-plt.show()
-plt.close()
-
-plt.plot(max_depths, f1_scores)
-plt.xlabel("K")
-plt.ylabel("F1 score promedio")
 plt.show()
 plt.close()
 
@@ -435,35 +417,23 @@ for max_depth in max_depths:
     precision_scores.append(
         utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
     )
-    recall_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.recall_score, labels=Y.unique(), average="macro")
-    )
-    f1_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.f1_score, labels=Y.unique(), average="macro")
-    )
+
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
-plt.xlabel("K")
+plt.xlabel("Profundidad máxima")
 plt.ylabel("Exactitud promedio")
 plt.show()
 plt.close()
 
 plt.plot(max_depths, precision_scores)
-plt.xlabel("K")
+plt.xlabel("Profundidad máxima")
 plt.ylabel("Precisión promedio")
 plt.show()
 plt.close()
 
-plt.plot(max_depths, recall_scores)
-plt.xlabel("K")
-plt.ylabel("Recall promedio")
-plt.show()
-plt.close()
+#%%----------------------------------------------------------------
 
-plt.plot(max_depths, f1_scores)
-plt.xlabel("K")
-plt.ylabel("F1 score promedio")
-plt.show()
-plt.close()
-
+best_max_depth = max_depths[np.argmax(accuracy_scores)]
+print(f"Profundidad óptima: {best_max_depth}")
+#%%----------------------------------------------------------------
 # %%
