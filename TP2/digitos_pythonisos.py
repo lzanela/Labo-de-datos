@@ -268,13 +268,12 @@ for subset in subsets:
 #%%----------------------------------------------------------------
 # k-Fold Cross Validation
 # Probamos realizar Cross Validation para los Principal Components
-import utils
 
-k_hyperparam = [1, 3, 5, 7, 10, 15, 20, 30, 50]
-accuracy = []
-precision = []
-recall = []
-f1_score = []
+k_hyperparam = [1, 3, 5, 7, 10, 15, 20, 30, 50, 75, 100]
+accuracy_scores = []
+precision_scores = []
+recall_scores = []
+f1_scores = []
 
 for k in k_hyperparam:
     model = KNeighborsClassifier(n_neighbors = k)
@@ -283,16 +282,44 @@ for k in k_hyperparam:
 
     # Reescalamos features entre 0 y 1
     utils.rescale_features(X)
-    acc = utils.kfold_cross_validation(X, Y, model, score_metric=metrics.accuracy_score)
-    print(acc)
-    accuracy.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.accuracy_score))
-    precision.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.precision_score))
-    recall.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.recall_score))
-    f1_score.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score))
+    accuracy_scores.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.accuracy_score))
+    precision_scores.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.precision_score))
+    recall_scores.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.recall_score))
+    f1_scores.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score))
 
 
 #%%----------------------------------------------------------------
+# Graficamos las métricas en función al hiperparámetro k.
 
+plt.plot(k_hyperparam, accuracy_scores)
+plt.xlabel("K")
+plt.ylabel("Exactitud promedio")
+plt.show()
+plt.close()
+
+plt.plot(k_hyperparam, precision_scores)
+plt.xlabel("K")
+plt.ylabel("Precisión promedio")
+plt.show()
+plt.close()
+
+plt.plot(k_hyperparam, recall_scores)
+plt.xlabel("K")
+plt.ylabel("Recall promedio")
+plt.show()
+plt.close()
+
+plt.plot(k_hyperparam, f1_scores)
+plt.xlabel("K")
+plt.ylabel("F1 score promedio")
+plt.show()
+plt.close()
+
+
+# Observamos que el valor k=10 es el que mejor
+# performa en todas las métricas
+
+#%%----------------------------------------------------------------
 # ACLARACION: ESTO VA PARA EL FINAL.
 # Calculamos la mediana de la cantidad de ocurrencias, y para todas las clases que
 # posean una cantidad de registros mayor, nos quedamos con un subconjunto

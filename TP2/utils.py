@@ -44,11 +44,12 @@ def kfold_cross_validation(X, y, model, score_metric, k=5):
         #Datos de training
         train_indices = np.concatenate((indices[:start], indices[end:]))
 
-        X_train, y_train = X.loc[train_indices, :], y[train_indices]
-        X_val, y_val = X[val_indices, :], y[val_indices]
+        X_train, y_train = X.iloc[train_indices, :], y[train_indices]
+        X_val, y_val = X.iloc[val_indices, :], y[val_indices]
 
         model.fit(X_train, y_train)
-        score = score_metric(X_val, y_val)
+        y_pred = model.predict(X_val)
+        score = score_metric(y_pred, y_val)
 
         scores.append(score)
 
