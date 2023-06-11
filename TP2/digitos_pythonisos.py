@@ -22,10 +22,13 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
+import random
+
 import utils
 
 # Dejamos un seed fijo
 RANDOM_SEED=42
+rng = np.random.default_rng(RANDOM_SEED)
 
 #%%----------------------------------------------------------------
 
@@ -69,8 +72,7 @@ print(f"Clase a representar: {df.iloc[random_index]['class']}")
 # de dimensionalidad, para determinar si los datos nos permitirán
 # entrenar los modelos de forma performante
 
-pca = PCA()
-pca.n_components = 4
+pca = PCA(n_components=4)
 pca_data = pca.fit_transform(df.drop("class", axis=1))
 pca_df = pd.DataFrame(data = pca_data, columns = ["PC1", "PC2", "PC3","PC4"])
 pca_df["class"] = df["class"]
@@ -90,9 +92,16 @@ print(f"Varianza explicada: {round(sum(pca.explained_variance_ratio_[0:2]), 2)*1
 # se distinguen de los demás, como el 0. Observemos qué áreas 
 # son explican la mayor varianza.
 
-# Obtengo la correlación de cada pixel para cada componente principal
+# Obtenemos los componentes principales. Podemos pensarlas como
+# direcciones en el espacio de atributos, que transforman la información
+# de forma que expliquen la mayor varianza en la dimensión indicada
 components = pca.components_
 
+
+# Tomando valor absoluto en cada posicion de estos vectores las podemos
+# pensar como pesos de cada feature en la componente principal respectiva.
+# Eso se debe a que determina cuánto "empuja" cada feature a la dirección
+# de una componente principal. 
 pixel_weights = np.abs(components)
 pixel_weights_image = pixel_weights.reshape(-1, 28, 28)
 
@@ -129,8 +138,7 @@ print(f"Diferencia entre ocurrencias de 0 y 1: {np.abs(counts[1]-counts[0])}")
 # Comencemos eligiendo como primeros atributos para la list
 # la clasificación por kNN, las 3 componentes principales.
 
-pca_binary = PCA()
-pca_binary.n_components = 3
+pca_binary = PCA(n_components=3)
 pca_data_binary = pca_binary.fit_transform(df_binary.drop("class", axis=1))
 pca_df_binary = pd.DataFrame(data = pca_data_binary, columns = ["PC1", "PC2", "PC3"])
 pca_df_binary["class"] = df_binary["class"]
@@ -155,14 +163,135 @@ disp.plot()
 print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
 
 # Tomamos a 0 como la clase Verdadera, ya que posee
-# menor muestra. 
+# menor muestra.
 print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
 print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
 print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
 
+#%%----------------------------------------------------------------
+# También podríamos elegir como features a los píxeles que más
+# empujan en la dirección de cada componente principal.
+
+pixels = []
+
+for component in pca_binary.components_:
+    pixel = np.argmax(np.abs(component))
+    pixels.append(pixel)
+
+positions = np.zeros(784)
+for pixel in pixels:
+    positions[pixel] = 1
+
+# Graficamos las posiciones de los píxeles a analizar
+plt.imshow(positions.reshape(28, 28), cmap="hot")
+plt.show()
+plt.close()
+
+#%%----------------------------------------------------------------
+# Los mismos son buenos candidatos, y se encuentran suficientemente separados.
+# Entrenamos el modelo.
+
+df_pixels = df_binary.loc[:, (str(pixel) for pixel in pixels)]
+X=df_pixels
+Y=df_binary["class"]
+
+# Reescalamos features entre 0 y 1
+utils.rescale_features(X)
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3) # 70% para train y 30% para test
+
+model = KNeighborsClassifier(n_neighbors = 5)
+model.fit(X_train, Y_train)
+Y_pred = model.predict(X_test)
+cm = metrics.confusion_matrix(Y_test, Y_pred)
+
+disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm,
+                                display_labels=model.classes_)
+disp.plot()
+print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
+print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
+print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
+print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+#%%----------------------------------------------------------------
+# Ahora bien, construiremos una grilla de 5 x 5, y seleccionaremos atributos
+# aleatoriamente. Los tamaños de los subconjuntos irán desde 4 hasta 7
+
+grid = []
+for i in range(5, 26, 4):
+    grid += list(range(5+28*i, 26+28*i, 4))
+
+
+positions = np.zeros(784)
+for pixel in grid:
+    positions[pixel] = 1
+
+# Graficamos las posiciones de los píxeles a analizar
+plt.imshow(positions.reshape(28, 28), cmap="hot")
+plt.show()
+plt.close()
+
+subsets = [list(rng.choice(grid, 4, replace=False))]
+
+for i in range(3):
+    last_subset = subsets[i]
+    new_subset = [*last_subset, *rng.choice(grid, 1, replace=False)]
+    subsets.append(new_subset)
 
 #%%----------------------------------------------------------------
 
+for subset in subsets:
+    df_pixels_grid = df_binary.loc[:, (str(pixel) for pixel in subset)]
+    X=df_pixels
+    Y=df_binary["class"]
+
+    # Reescalamos features entre 0 y 1
+    utils.rescale_features(X)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3) # 70% para train y 30% para test
+
+    model = KNeighborsClassifier(n_neighbors = 5)
+    model.fit(X_train, Y_train)
+    Y_pred = model.predict(X_test)
+
+    print(f"Subconjunto de pixels: {subset}")
+
+    cm = metrics.confusion_matrix(Y_test, Y_pred)
+
+    disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm,
+                                    display_labels=model.classes_)
+    disp.plot()
+    plt.show()
+    plt.close()
+    print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
+    print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
+    print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
+    print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+    print("---------------------------------")
+#%%----------------------------------------------------------------
+# k-Fold Cross Validation
+# Probamos realizar Cross Validation para los Principal Components
+import utils
+
+k_hyperparam = [1, 3, 5, 7, 10, 15, 20, 30, 50]
+accuracy = []
+precision = []
+recall = []
+f1_score = []
+
+for k in k_hyperparam:
+    model = KNeighborsClassifier(n_neighbors = k)
+    X=pca_df_binary.drop("class", axis=1)
+    Y=pca_df_binary["class"]
+
+    # Reescalamos features entre 0 y 1
+    utils.rescale_features(X)
+    acc = utils.kfold_cross_validation(X, Y, model, score_metric=metrics.accuracy_score)
+    print(acc)
+    accuracy.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.accuracy_score))
+    precision.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.precision_score))
+    recall.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.recall_score))
+    f1_score.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score))
+
+
+#%%----------------------------------------------------------------
 
 # ACLARACION: ESTO VA PARA EL FINAL.
 # Calculamos la mediana de la cantidad de ocurrencias, y para todas las clases que
