@@ -137,10 +137,10 @@ counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
 plt.show()
 plt.close()
 
-print(f"Diferencia entre ocurrencias de 0 y 1: {np.abs((counts[1]-counts[0])*100/len(df_binary))} %")
+print(f"Diferencia de porcentaje entre ocurrencias de 0 y 1: {np.abs((counts[1]-counts[0])*100/len(df_binary))} %")
 # Observamos un pequeño desbalanceo, donde la clase 1 posee un 6% más muestras que la clase 0
 #%%----------------------------------------------------------------
-# Comencemos eligiendo como primeros atributos para la list
+# Comencemos eligiendo como primeros atributos para la
 # la clasificación por kNN, las 3 componentes principales.
 
 pca_binary = PCA(n_components=3)
