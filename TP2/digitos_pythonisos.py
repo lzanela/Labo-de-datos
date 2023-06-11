@@ -57,6 +57,9 @@ counts = classes.value_counts()
 counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
 plt.show()
 plt.close()
+
+print("Media: ", counts.mean())
+print("Desvío estándar: ", counts.std())
 #%%----------------------------------------------------------------
 # Observamos que hay ciertas clases que están desbalanceadas
 # con el resto (principalmente el 1 y el 7, con el 5). 
