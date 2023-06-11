@@ -23,7 +23,7 @@ RANDOM_SEED=42
 
 
 
-def kfold_cross_validation(X, y, model, score_metric, k=5):
+def kfold_cross_validation(X, y, model, score_metric, k=5, **score_params):
     rng = np.random.default_rng(RANDOM_SEED)
     n_samples = len(X)
     indices = np.arange(n_samples)
@@ -49,7 +49,7 @@ def kfold_cross_validation(X, y, model, score_metric, k=5):
 
         model.fit(X_train, y_train)
         y_pred = model.predict(X_val)
-        score = score_metric(y_pred, y_val)
+        score = score_metric(y_pred, y_val, **score_params)
 
         scores.append(score)
 
@@ -78,7 +78,6 @@ def plot_digit(df, index):
 def random_subset(df, column, k):
     subset = pd.DataFrame(columns=df.columns)
     classes = df[column].unique()
-    
     for c in classes:
         class_rows = df[df[column] == c]
         if len(class_rows) > k:

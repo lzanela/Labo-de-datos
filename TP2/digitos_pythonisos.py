@@ -18,10 +18,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
+from sklearn import metrics
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
-from sklearn import metrics
+from sklearn.tree import DecisionTreeClassifier
 import random
 
 import utils
@@ -133,7 +134,8 @@ counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
 plt.show()
 plt.close()
 
-print(f"Diferencia entre ocurrencias de 0 y 1: {np.abs(counts[1]-counts[0])}")
+print(f"Diferencia entre ocurrencias de 0 y 1: {np.abs((counts[1]-counts[0])*100/len(df_binary))} %")
+# Observamos un pequeño desbalanceo, donde la clase 1 posee un 6% más muestras que la clase 0
 #%%----------------------------------------------------------------
 # Comencemos eligiendo como primeros atributos para la list
 # la clasificación por kNN, las 3 componentes principales.
@@ -216,8 +218,8 @@ print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
 # aleatoriamente. Los tamaños de los subconjuntos irán desde 4 hasta 7
 
 grid = []
-for i in range(5, 26, 4):
-    grid += list(range(5+28*i, 26+28*i, 4))
+for i in range(6, 23, 4):
+    grid += list(range(6+28*i, 22+28*i, 4))
 
 
 positions = np.zeros(784)
@@ -282,10 +284,18 @@ for k in k_hyperparam:
 
     # Reescalamos features entre 0 y 1
     utils.rescale_features(X)
-    accuracy_scores.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.accuracy_score))
-    precision_scores.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.precision_score))
-    recall_scores.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.recall_score))
-    f1_scores.append(utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score))
+    accuracy_scores.append(
+        utils.kfold_cross_validation(X, Y, model, score_metric=metrics.accuracy_score)
+    )
+    precision_scores.append(
+        utils.kfold_cross_validation(X, Y, model, score_metric=metrics.precision_score, pos_label=0)
+    )
+    recall_scores.append(
+        utils.kfold_cross_validation(X, Y, model, score_metric=metrics.recall_score, pos_label=0)
+    )
+    f1_scores.append(
+        utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score, pos_label=0)
+    )
 
 
 #%%----------------------------------------------------------------
@@ -320,24 +330,140 @@ plt.close()
 # performa en todas las métricas
 
 #%%----------------------------------------------------------------
-# ACLARACION: ESTO VA PARA EL FINAL.
+# Modelo de Árbol de Decisión
+#%%----------------------------------------------------------------
+# Como observamos al principio, las clases no se encuentran del todo balanceadas.
+# Considerando que la muestra es suficiente para la clasificación, realizaremos undersampling
 # Calculamos la mediana de la cantidad de ocurrencias, y para todas las clases que
 # posean una cantidad de registros mayor, nos quedamos con un subconjunto
 # aleatorio.
 
+classes = df["class"]
+counts = classes.value_counts()
 classes_median = counts.median()
 
-df = utils.random_subset(df, 'class', int(classes_median))
-
-classes = df["class"]
-classes.value_counts()*100/len(df)
+df_undersampled = utils.random_subset(df, 'class', int(classes_median))
+classes = df_undersampled["class"]
+counts = classes.value_counts()*100/len(df_undersampled)
+counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
+df_undersampled.reset_index(inplace=True)
+df_undersampled.drop("index", axis=1, inplace=True)
 #%%----------------------------------------------------------------
 # Observamos que la clase '5' posee un 0,75% menos de registros que 
 # el que esperaríamos tener. 
 # Eso lo podríamos tener en cuenta luego a la hora de analizar 
 # los resultados. Sin embargo, esperamos que se corregirá realizando
 # ensamblaje de modelos.
+# Ajustamos un clasificador por árbol de decisión
+# para distintas profundidades, ya usando Cross Validation
+
+
+# Comenzamos probando con los PCAs
+max_depths = [3, 5, 7, 10, 15, 20, 30]
+accuracy_scores = []
+precision_scores = []
+recall_scores = []
+f1_scores = []
+
+for max_depth in max_depths:
+    dt_model = DecisionTreeClassifier(
+        criterion = "entropy",
+        max_depth=max_depth
+    )
+    X=pca_df.drop("class", axis=1)
+    Y=pca_df["class"]
+
+    accuracy_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
+    )
+    precision_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
+    )
+    recall_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.recall_score, labels=Y.unique(), average="macro")
+    )
+    f1_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.f1_score, labels=Y.unique(), average="macro")
+    )
 
 #%%----------------------------------------------------------------
+plt.plot(max_depths, accuracy_scores)
+plt.xlabel("K")
+plt.ylabel("Exactitud promedio")
+plt.show()
+plt.close()
+
+plt.plot(max_depths, precision_scores)
+plt.xlabel("K")
+plt.ylabel("Precisión promedio")
+plt.show()
+plt.close()
+
+plt.plot(max_depths, recall_scores)
+plt.xlabel("K")
+plt.ylabel("Recall promedio")
+plt.show()
+plt.close()
+
+plt.plot(max_depths, f1_scores)
+plt.xlabel("K")
+plt.ylabel("F1 score promedio")
+plt.show()
+plt.close()
+
+#%%----------------------------------------------------------------
+# Realizamos lo mismo, pero con la grilla presentada
+# previamente
+
+accuracy_scores = []
+precision_scores = []
+recall_scores = []
+f1_scores = []
+df_pixels_grid = df_undersampled.loc[:, (str(pixel) for pixel in grid)]
+X=df_pixels_grid
+Y=df_undersampled["class"].astype('int')
+
+for max_depth in max_depths:
+    dt_model = DecisionTreeClassifier(
+        criterion = "entropy",
+        max_depth=max_depth
+    )
+
+    accuracy_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
+    )
+    precision_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
+    )
+    recall_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.recall_score, labels=Y.unique(), average="macro")
+    )
+    f1_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.f1_score, labels=Y.unique(), average="macro")
+    )
+#%%----------------------------------------------------------------
+plt.plot(max_depths, accuracy_scores)
+plt.xlabel("K")
+plt.ylabel("Exactitud promedio")
+plt.show()
+plt.close()
+
+plt.plot(max_depths, precision_scores)
+plt.xlabel("K")
+plt.ylabel("Precisión promedio")
+plt.show()
+plt.close()
+
+plt.plot(max_depths, recall_scores)
+plt.xlabel("K")
+plt.ylabel("Recall promedio")
+plt.show()
+plt.close()
+
+plt.plot(max_depths, f1_scores)
+plt.xlabel("K")
+plt.ylabel("F1 score promedio")
+plt.show()
+plt.close()
 
 # %%
