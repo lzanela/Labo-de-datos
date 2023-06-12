@@ -155,7 +155,7 @@ Y=pca_df_binary["class"]
 
 # Reescalamos features entre 0 y 1
 utils.rescale_features(X)
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3) # 70% para train y 30% para test
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3, stratify= Y) # 70% para train y 30% para test
 
 model = KNeighborsClassifier(n_neighbors = 5)
 model.fit(X_train, Y_train)
@@ -204,7 +204,7 @@ Y=df_binary["class"]
 
 # Reescalamos features entre 0 y 1
 utils.rescale_features(X)
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3) # 70% para train y 30% para test
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3, stratify= Y) # 70% para train y 30% para test
 
 model = KNeighborsClassifier(n_neighbors = 5)
 model.fit(X_train, Y_train)
@@ -252,7 +252,7 @@ for subset in subsets:
 
     # Reescalamos features entre 0 y 1
     utils.rescale_features(X)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3) # 70% para train y 30% para test
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3, stratify= Y) # 70% para train y 30% para test
 
     model = KNeighborsClassifier(n_neighbors = 5)
     model.fit(X_train, Y_train)
@@ -351,14 +351,15 @@ df_undersampled = utils.random_subset(df, 'class', int(classes_median))
 classes = df_undersampled["class"]
 counts = classes.value_counts()*100/len(df_undersampled)
 counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
+plt.show()
+plt.close()
 df_undersampled.reset_index(inplace=True)
 df_undersampled.drop("index", axis=1, inplace=True)
 #%%----------------------------------------------------------------
 # Observamos que la clase '5' posee un 0,75% menos de registros que 
 # el que esperaríamos tener. 
 # Eso lo podríamos tener en cuenta luego a la hora de analizar 
-# los resultados. Sin embargo, esperamos que se corregirá realizando
-# ensamblaje de modelos.
+# los resultados.
 # Ajustamos un clasificador por árbol de decisión
 # para distintas profundidades, ya usando Cross Validation
 
@@ -388,7 +389,7 @@ for max_depth in max_depths:
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
 plt.xlabel("Profundidad máxima")
-plt.ylabel("Exactitud promedio")
+plt.ylabel("Exactitud")
 plt.show()
 plt.close()
 
@@ -426,7 +427,7 @@ for max_depth in max_depths:
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
 plt.xlabel("Profundidad máxima")
-plt.ylabel("Exactitud promedio")
+plt.ylabel("Exactitud")
 plt.show()
 plt.close()
 
