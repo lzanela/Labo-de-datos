@@ -1,16 +1,10 @@
 """
-
 Trabajo Práctico Nº2
-
 Materia Laboratorio de Datos, FCEyN UBA
 1er Cuatrimestre 2023
-
 Grupo: Pythonisos
-
 Integrantes: Nicolás Rozenberg, Joaquín Viera, Luca Zanela. 
-
 Nombre del archivo: digitos_pythonisos.py
-
 """
 
 #%%----------------------------------------------------------------
@@ -247,6 +241,7 @@ for i in range(3):
 
 for subset in subsets:
     df_pixels_grid = df_binary.loc[:, (str(pixel) for pixel in subset)]
+    #puede ser que aca tenga q ser X=df_pixels_grid?
     X=df_pixels
     Y=df_binary["class"]
 
@@ -272,6 +267,35 @@ for subset in subsets:
     print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
     print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
     print("---------------------------------")
+#%%----------------------------------------------------------------
+# Pruebamos de usar toda la grilla
+
+df_pixels_total_grid = df_binary.loc[:, (str(pixel) for pixel in grid)]
+X=df_pixels_total_grid
+Y=df_binary["class"]
+
+# Reescalamos features entre 0 y 1
+utils.rescale_features(X)
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3, stratify= Y) # 70% para train y 30% para test
+
+model = KNeighborsClassifier(n_neighbors = 5)
+model.fit(X_train, Y_train)
+Y_pred = model.predict(X_test)
+
+print(f"Subconjunto de pixels: {subset}")
+
+cm = metrics.confusion_matrix(Y_test, Y_pred)
+
+disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm,
+                                    display_labels=model.classes_)
+disp.plot()
+plt.show()
+plt.close()
+print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
+print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
+print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
+print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+print("---------------------------------")
 #%%----------------------------------------------------------------
 # k-Fold Cross Validation
 # Probamos realizar Cross Validation para los Principal Components
@@ -378,6 +402,58 @@ for max_depth in max_depths:
     )
     X=pca_df.drop("class", axis=1)
     Y=pca_df["class"]
+
+    accuracy_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
+    )
+    precision_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
+    )
+
+#%%----------------------------------------------------------------
+plt.plot(max_depths, accuracy_scores)
+plt.xlabel("Profundidad máxima")
+plt.ylabel("Exactitud")
+plt.show()
+plt.close()
+
+plt.plot(max_depths, precision_scores)
+plt.xlabel("Profundidad máxima")
+plt.ylabel("Precisión promedio")
+plt.show()
+plt.close()
+
+#%%----------------------------------------------------------------
+# Hacemos lo mismo con el rectangulo del medio
+# Me armo un rectangulo de 14x22
+# Usamos otras profundidades por el tiempo de ejecucion
+profundidades=[5,7,10,15]
+rectangulo = []
+for i in range(2, 26):
+    rectangulo += list(range(6+28*i, 22+28*i))
+positions = np.zeros(784)
+for pixel in rectangulo:
+    positions[pixel] = 1
+
+# Graficamos las posiciones del rectangulo a analizar
+plt.imshow(positions.reshape(28, 28), cmap="hot")
+plt.show()
+plt.close()
+
+# Pruebo el modelo
+accuracy_scores = []
+precision_scores = []
+recall_scores = []
+f1_scores = []
+df_pixels_rect = df_undersampled.loc[:, (str(pixel) for pixel in rectangulo)]
+X=df_pixels_rect
+Y=df_undersampled["class"].astype('int')
+
+for max_depth in profundidades:
+    dt_model = DecisionTreeClassifier(
+        criterion = "entropy",
+        max_depth=max_depth
+    )
 
     accuracy_scores.append(
         utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
