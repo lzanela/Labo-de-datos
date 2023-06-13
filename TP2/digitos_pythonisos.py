@@ -239,10 +239,14 @@ for i in range(3):
     subsets.append(new_subset)
 
 #%%----------------------------------------------------------------
-
+# Guardo los conjuntos de datos pertenecientes
+# a cada subconjunto de atributos en possible data,
+# para luego compararlos
+possible_data=[]
 for subset in subsets:
     df_pixels_grid = df_binary.loc[:, (str(pixel) for pixel in subset)]
     X=df_pixels_grid
+    possible_data.append(X)
     Y=df_binary["class"]
 
     # Reescalamos features entre 0 y 1
@@ -301,33 +305,38 @@ print("---------------------------------")
 # Probamos realizar Cross Validation para los Principal Components
 
 k_hyperparam = [1, 3, 5, 10, 15, 20, 30, 50]
-f1_scores = []
+possible_data = [pca_df_binary.drop("class", axis=1), df_pixels, *possible_data, df_pixels_total_grid]
+best_k_data=[]
 
-for k in k_hyperparam:
-    model = KNeighborsClassifier(n_neighbors = k)
-    X=pca_df_binary.drop("class", axis=1)
-    Y=pca_df_binary["class"]
+for x in possible_data:
+    f1_scores = []
+    for k in k_hyperparam:
+        model = KNeighborsClassifier(n_neighbors = k)
+        X=x
+        Y=df_binary["class"]
 
-    # Reescalamos features entre 0 y 1
-    utils.rescale_features(X)
-    f1_scores.append(
-        utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score, pos_label=0)
-    )
+        # Reescalamos features entre 0 y 1
+        utils.rescale_features(X)
+        f1_scores.append(
+            utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score, pos_label=0)
+        )
+    # Graficamos las métricas en función al hiperparámetro k
+    # y su data
+    plt.plot(k_hyperparam, f1_scores)
+    plt.xlabel("K")
+    plt.ylabel("F1 score")
+    plt.show()
+    plt.close()
+    max_score = max(f1_scores)
+    best_k = k_hyperparam[np.argmax(f1_scores)]
+    best_k_data.append((best_k,max_score,", ".join(x.columns)))
+    print(f"F1 score máximo: {max_score}")
+    print(f"Profundidad óptima: {best_k}")
+    print(", ".join(x.columns))
 
+print(max(best_k_data, key=lambda x: x[1]))
 
-#%%----------------------------------------------------------------
-# Graficamos las métricas en función al hiperparámetro k.
-
-plt.plot(k_hyperparam, f1_scores)
-plt.xlabel("K")
-plt.ylabel("F1 score")
-plt.show()
-plt.close()
-
-max_score = max(f1_scores)
-best_k = k_hyperparam[np.argmax(f1_scores)]
-print(f"Exactitud máxima: {max_score}")
-print(f"Profundidad óptima: {best_k}")
+#%%----------------------------------------------------------------+
 
 # Observamos que el valor k=10 es el que mejor
 # performa en todas las métricas
@@ -473,4 +482,3 @@ best_max_depth = max_depths[np.argmax(accuracy_scores)]
 print(f"Exactitud máxima: {max_accuracy}")
 print(f"Profundidad óptima: {best_max_depth}")
 #%%----------------------------------------------------------------
-# %%
