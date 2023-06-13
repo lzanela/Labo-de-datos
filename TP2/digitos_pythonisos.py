@@ -54,6 +54,7 @@ plt.close()
 
 print("Media: ", counts.mean())
 print("Desvío estándar: ", counts.std())
+print("Cantidad de datos: ", len(df))
 #%%----------------------------------------------------------------
 # Observamos que hay ciertas clases que están desbalanceadas
 # con el resto (principalmente el 1 y el 7, con el 5). 
@@ -100,12 +101,12 @@ components = pca.components_
 # pensar como pesos de cada feature en la componente principal respectiva.
 # Eso se debe a que determina cuánto "empuja" cada feature a la dirección
 # de una componente principal. 
-pixel_weights = np.abs(components)
+pixel_weights = np.abs(components) * np.vstack(pca.explained_variance_ratio_)
 pixel_weights_image = pixel_weights.reshape(-1, 28, 28)
 
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 10))
 for i, ax in enumerate(axes.flat):
-    ax.imshow(pixel_weights_image[i], cmap='hot', vmin=0, vmax=np.max(pixel_weights_image[i]))
+    ax.imshow(pixel_weights_image[i], cmap='hot', vmin=0, vmax=np.max(pixel_weights_image))
     ax.set_axis_off()
     ax.set_title(f"PCA {i+1}")
 
@@ -241,8 +242,7 @@ for i in range(3):
 
 for subset in subsets:
     df_pixels_grid = df_binary.loc[:, (str(pixel) for pixel in subset)]
-    #puede ser que aca tenga q ser X=df_pixels_grid?
-    X=df_pixels
+    X=df_pixels_grid
     Y=df_binary["class"]
 
     # Reescalamos features entre 0 y 1
@@ -300,10 +300,7 @@ print("---------------------------------")
 # k-Fold Cross Validation
 # Probamos realizar Cross Validation para los Principal Components
 
-k_hyperparam = [1, 3, 5, 7, 10, 15, 20, 30, 50, 75, 100]
-accuracy_scores = []
-precision_scores = []
-recall_scores = []
+k_hyperparam = [1, 3, 5, 10, 15, 20, 30, 50]
 f1_scores = []
 
 for k in k_hyperparam:
@@ -313,15 +310,6 @@ for k in k_hyperparam:
 
     # Reescalamos features entre 0 y 1
     utils.rescale_features(X)
-    accuracy_scores.append(
-        utils.kfold_cross_validation(X, Y, model, score_metric=metrics.accuracy_score)
-    )
-    precision_scores.append(
-        utils.kfold_cross_validation(X, Y, model, score_metric=metrics.precision_score, pos_label=0)
-    )
-    recall_scores.append(
-        utils.kfold_cross_validation(X, Y, model, score_metric=metrics.recall_score, pos_label=0)
-    )
     f1_scores.append(
         utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score, pos_label=0)
     )
@@ -330,30 +318,16 @@ for k in k_hyperparam:
 #%%----------------------------------------------------------------
 # Graficamos las métricas en función al hiperparámetro k.
 
-plt.plot(k_hyperparam, accuracy_scores)
-plt.xlabel("K")
-plt.ylabel("Exactitud promedio")
-plt.show()
-plt.close()
-
-plt.plot(k_hyperparam, precision_scores)
-plt.xlabel("K")
-plt.ylabel("Precisión promedio")
-plt.show()
-plt.close()
-
-plt.plot(k_hyperparam, recall_scores)
-plt.xlabel("K")
-plt.ylabel("Recall promedio")
-plt.show()
-plt.close()
-
 plt.plot(k_hyperparam, f1_scores)
 plt.xlabel("K")
-plt.ylabel("F1 score promedio")
+plt.ylabel("F1 score")
 plt.show()
 plt.close()
 
+max_score = max(f1_scores)
+best_k = k_hyperparam[np.argmax(f1_scores)]
+print(f"Exactitud máxima: {max_score}")
+print(f"Profundidad óptima: {best_k}")
 
 # Observamos que el valor k=10 es el que mejor
 # performa en todas las métricas
@@ -379,21 +353,23 @@ plt.show()
 plt.close()
 df_undersampled.reset_index(inplace=True)
 df_undersampled.drop("index", axis=1, inplace=True)
+print("Registros perdidos", len(df)-len(df_undersampled))
 #%%----------------------------------------------------------------
 # Observamos que la clase '5' posee un 0,75% menos de registros que 
-# el que esperaríamos tener. 
-# Eso lo podríamos tener en cuenta luego a la hora de analizar 
-# los resultados.
+# el que esperaríamos tener. Sin embargo, consideramos que es despreciable
+# debido a la cantidad de datos.
 # Ajustamos un clasificador por árbol de decisión
 # para distintas profundidades, ya usando Cross Validation
 
 
 # Comenzamos probando con los PCAs
+pca = PCA(n_components=4)
+pca_data = pca.fit_transform(df.drop("class", axis=1))
+pca_df = pd.DataFrame(data = pca_data, columns = ["PC1", "PC2", "PC3","PC4"])
+pca_df["class"] = df["class"]
+
 max_depths = [3, 5, 7, 10, 15, 20, 30]
 accuracy_scores = []
-precision_scores = []
-recall_scores = []
-f1_scores = []
 
 for max_depth in max_depths:
     dt_model = DecisionTreeClassifier(
@@ -406,8 +382,37 @@ for max_depth in max_depths:
     accuracy_scores.append(
         utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
     )
-    precision_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
+
+#%%----------------------------------------------------------------
+plt.plot(max_depths, accuracy_scores)
+plt.xlabel("Profundidad máxima")
+plt.ylabel("Exactitud")
+plt.show()
+plt.close()
+
+max_accuracy = max(accuracy_scores)
+best_max_depth = max_depths[np.argmax(accuracy_scores)]
+print(f"Exactitud máxima: {max_accuracy}")
+print(f"Profundidad óptima: {best_max_depth}")
+
+
+#%%----------------------------------------------------------------
+# Realizamos lo mismo, pero con la grilla presentada
+# previamente
+
+accuracy_scores = []
+df_pixels_grid = df_undersampled.loc[:, (str(pixel) for pixel in grid)]
+X=df_pixels_grid
+Y=df_undersampled["class"].astype('int')
+
+for max_depth in max_depths:
+    dt_model = DecisionTreeClassifier(
+        criterion = "entropy",
+        max_depth=max_depth
+    )
+
+    accuracy_scores.append(
+        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
     )
 
 #%%----------------------------------------------------------------
@@ -417,17 +422,17 @@ plt.ylabel("Exactitud")
 plt.show()
 plt.close()
 
-plt.plot(max_depths, precision_scores)
-plt.xlabel("Profundidad máxima")
-plt.ylabel("Precisión promedio")
-plt.show()
-plt.close()
+max_accuracy = max(accuracy_scores)
+best_max_depth = max_depths[np.argmax(accuracy_scores)]
+print(f"Exactitud máxima: {max_accuracy}")
+print(f"Profundidad óptima: {best_max_depth}")
 
 #%%----------------------------------------------------------------
 # Hacemos lo mismo con el rectangulo del medio
 # Me armo un rectangulo de 14x22
 # Usamos otras profundidades por el tiempo de ejecucion
-profundidades=[5,7,10,15]
+
+max_depths = [5, 7, 10, 15, 20]
 rectangulo = []
 for i in range(2, 26):
     rectangulo += list(range(6+28*i, 22+28*i))
@@ -442,49 +447,8 @@ plt.close()
 
 # Pruebo el modelo
 accuracy_scores = []
-precision_scores = []
-recall_scores = []
-f1_scores = []
 df_pixels_rect = df_undersampled.loc[:, (str(pixel) for pixel in rectangulo)]
 X=df_pixels_rect
-Y=df_undersampled["class"].astype('int')
-
-for max_depth in profundidades:
-    dt_model = DecisionTreeClassifier(
-        criterion = "entropy",
-        max_depth=max_depth
-    )
-
-    accuracy_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
-    )
-    precision_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
-    )
-
-#%%----------------------------------------------------------------
-plt.plot(max_depths, accuracy_scores)
-plt.xlabel("Profundidad máxima")
-plt.ylabel("Exactitud")
-plt.show()
-plt.close()
-
-plt.plot(max_depths, precision_scores)
-plt.xlabel("Profundidad máxima")
-plt.ylabel("Precisión promedio")
-plt.show()
-plt.close()
-
-#%%----------------------------------------------------------------
-# Realizamos lo mismo, pero con la grilla presentada
-# previamente
-
-accuracy_scores = []
-precision_scores = []
-recall_scores = []
-f1_scores = []
-df_pixels_grid = df_undersampled.loc[:, (str(pixel) for pixel in grid)]
-X=df_pixels_grid
 Y=df_undersampled["class"].astype('int')
 
 for max_depth in max_depths:
@@ -496,9 +460,6 @@ for max_depth in max_depths:
     accuracy_scores.append(
         utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
     )
-    precision_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
-    )
 
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
@@ -507,15 +468,9 @@ plt.ylabel("Exactitud")
 plt.show()
 plt.close()
 
-plt.plot(max_depths, precision_scores)
-plt.xlabel("Profundidad máxima")
-plt.ylabel("Precisión promedio")
-plt.show()
-plt.close()
-
-#%%----------------------------------------------------------------
-
+max_accuracy = max(accuracy_scores)
 best_max_depth = max_depths[np.argmax(accuracy_scores)]
+print(f"Exactitud máxima: {max_accuracy}")
 print(f"Profundidad óptima: {best_max_depth}")
 #%%----------------------------------------------------------------
 # %%
