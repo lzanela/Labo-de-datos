@@ -125,6 +125,8 @@ plt.show()
 
 df_binary  = df[df["class"].isin([0, 1])]
 df_binary.reset_index(drop=True, inplace=True)
+len(df_binary)
+len(df_binary[df_binary["class"] == 1])
 
 classes = df_binary["class"]
 counts = classes.value_counts()
@@ -273,7 +275,7 @@ for subset in subsets:
     print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
     print("---------------------------------")
 #%%----------------------------------------------------------------
-# Pruebamos de usar toda la grilla
+# Probamos usar toda la grilla
 
 df_pixels_total_grid = df_binary.loc[:, (str(pixel) for pixel in grid)]
 X=df_pixels_total_grid
@@ -563,7 +565,10 @@ model.fit(X_train, Y_train)
 Y_pred = model.predict(X_test)
 
 end = time.time()
+
+print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
 print("Tiempo de entrenamiento y predicción para el kNN: ", end - start)
+
 start = time.time()
 
 model = DecisionTreeClassifier(max_depth = 5)
@@ -572,5 +577,6 @@ Y_pred = model.predict(X_test)
 
 end = time.time()
 
+print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
 print("Tiempo de entrenamiento y predicción para el Árbol de decisión: ", end - start)
 # %%
