@@ -29,6 +29,12 @@ rng = np.random.default_rng(RANDOM_SEED)
 
 df = pd.read_csv('./data/mnist_desarrollo.csv', header=None)
 df.head()
+
+df_test_binario = pd.read_csv('./data/mnist_test_binario.csv', header=None)
+df_test = pd.read_csv('./data/mnist_test.csv', header=None)
+
+# df_test_binario.drop("Unnamed: 0", axis=1, inplace=True)
+
 #%%----------------------------------------------------------------
 # Podemos deducir que la primera columna corresponde a las clases
 # (dígitos del 0 al 9). Renombramos las columnas 
@@ -40,6 +46,8 @@ COLUMNS = [
     *[str(i-1) for i in range(1, len(df.columns))]
 ]
 df.columns = COLUMNS
+df_test.columns = COLUMNS
+df_test_binario.columns = COLUMNS
 
 #%%----------------------------------------------------------------
 # Evaluemos si el dataset provisto
@@ -507,12 +515,12 @@ best_max_depth = max_depths[np.argmax(accuracy_scores)]
 print(f"Exactitud máxima: {max_accuracy}")
 print(f"Profundidad óptima: {best_max_depth}")
 #%%----------------------------------------------------------------
-# Nos fijamos si los pixeles que mas se usan tienen mejor rendimiento a la hora de entrenar
-# en el arbol
+# Nos fijamos si los pixeles que mas se usan tienen mejor rendimiento a la hora
+# de entrenar el arbol
 pixeles=list(range(0,784))
 strings=[str(x) for x in pixeles]
 
-promedios=list(df[strings].mean())
+promedios=list(df_undersampled[strings].mean())
 
 reshape_promedios = []
 for i in range(0, len(promedios), 28):
@@ -606,4 +614,57 @@ end = time.time()
 
 print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
 print("Tiempo de entrenamiento y predicción para el Árbol de decisión: ", end - start)
+
 # %%
+# Modelos definitivos
+
+# Seleccionamos los modelos que mejor rendimiento obtuvieron,
+# tanto para el caso binario como para el caso completo
+
+#%%
+# Para dataset binario, elegimos kNN con k=5 vecinos entrenado a partir 
+# de la grilla de la figura 7
+
+df_pixels_total_grid = df_binary.loc[:, (str(pixel) for pixel in grid)]
+X=df_pixels_total_grid
+Y=df_binary["class"]
+
+# Reescalamos features entre 0 y 1 y evaluamos rendimiento sobre el conjunto de test provisto
+
+utils.rescale_features(X)
+X_train, X_test, Y_train, Y_test = X, df_test_binario.drop("class", axis=1).loc[:, (str(pixel) for pixel in grid)], Y, df_test_binario["class"]
+
+model = KNeighborsClassifier(n_neighbors = 5)
+model.fit(X_train, Y_train)
+Y_pred = model.predict(X_test)
+
+print("Exactitud del modelo en test:", metrics.accuracy_score(Y_test, Y_pred))
+print("F1 Score del modelo en test: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+
+Y_pred = model.predict(X_train)
+
+print("Exactitud del modelo en training:", metrics.accuracy_score(Y_train, Y_pred))
+print("F1 Score del modelo en training: ", metrics.f1_score(Y_train, Y_pred, pos_label=0))
+print("---------------------------------")
+
+#%%
+# Para dataset completo, elegimos el árbol de decisión con profundidad máxima 
+# k=15 entrenado a partir del conjunto de píxeles con promedio de intensidad por 
+# encima del percentil 80, mostrado en la figura 9.
+
+df_pixels_high = df.loc[:, (str(pixel) for pixel in pixeles_altos)]
+X=df_pixels_high
+Y=df["class"].astype('int')
+
+
+dt_model = DecisionTreeClassifier(criterion = "entropy", max_depth=15)
+X_train, X_test, Y_train, Y_test = X, df_test.drop("class", axis=1).loc[:, (str(pixel) for pixel in pixeles_altos)], Y, df_test["class"]
+
+dt_model.fit(X_train, Y_train)
+Y_pred = dt_model.predict(X_test)
+
+print("Exactitud del modelo en test:", metrics.accuracy_score(Y_test, Y_pred))
+
+Y_pred = dt_model.predict(X_train)
+
+print("Exactitud del modelo en training:", metrics.accuracy_score(Y_train, Y_pred))
