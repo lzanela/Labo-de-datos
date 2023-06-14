@@ -17,7 +17,6 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
-import random
 import time
 
 import utils
@@ -163,14 +162,16 @@ cm = metrics.confusion_matrix(Y_test, Y_pred)
 disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm,
                                 display_labels=model.classes_)
 disp.plot()
-print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
+print("Exactitud del modelo en test:", metrics.accuracy_score(Y_test, Y_pred))
 
 # Tomamos a 0 como la clase Verdadera, ya que posee
 # menor muestra.
-print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
-print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
-print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+print("F1 Score del modelo en test: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
 
+Y_pred = model.predict(X_train)
+
+print("Exactitud del modelo en training:", metrics.accuracy_score(Y_train, Y_pred))
+print("F1 Score del modelo en training: ", metrics.f1_score(Y_train, Y_pred, pos_label=0))
 #%%----------------------------------------------------------------
 # También podríamos elegir como features a los píxeles que más
 # empujan en la dirección de cada componente principal.
@@ -212,10 +213,13 @@ cm = metrics.confusion_matrix(Y_test, Y_pred)
 disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm,
                                 display_labels=model.classes_)
 disp.plot()
-print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
-print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
-print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
-print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+print("Exactitud del modelo en test:", metrics.accuracy_score(Y_test, Y_pred))
+print("F1 Score del modelo en test: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+
+Y_pred = model.predict(X_train)
+
+print("Exactitud del modelo en training:", metrics.accuracy_score(Y_train, Y_pred))
+print("F1 Score del modelo en training: ", metrics.f1_score(Y_train, Y_pred, pos_label=0))
 #%%----------------------------------------------------------------
 # Ahora bien, construiremos una grilla de 5 x 5, y seleccionaremos atributos
 # aleatoriamente. Los tamaños de los subconjuntos irán desde 4 hasta 7
@@ -269,10 +273,13 @@ for subset in subsets:
     disp.plot()
     plt.show()
     plt.close()
-    print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
-    print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
-    print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
-    print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+    print("Exactitud del modelo en test:", metrics.accuracy_score(Y_test, Y_pred))
+    print("F1 Score del modelo en test: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+    
+    Y_pred = model.predict(X_train)
+    
+    print("Exactitud del modelo en training:", metrics.accuracy_score(Y_train, Y_pred))
+    print("F1 Score del modelo en training: ", metrics.f1_score(Y_train, Y_pred, pos_label=0))
     print("---------------------------------")
 #%%----------------------------------------------------------------
 # Probamos usar toda la grilla
@@ -298,44 +305,57 @@ disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm,
 disp.plot()
 plt.show()
 plt.close()
-print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
-print("Precisión del modelo: ", metrics.precision_score(Y_test, Y_pred, pos_label=0))
-print("Sensitividad del modelo: ", metrics.recall_score(Y_test, Y_pred, pos_label=0))
-print("F1 Score del modelo: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+print("Exactitud del modelo en test:", metrics.accuracy_score(Y_test, Y_pred))
+print("F1 Score del modelo en test: ", metrics.f1_score(Y_test, Y_pred, pos_label=0))
+
+Y_pred = model.predict(X_train)
+
+print("Exactitud del modelo en training:", metrics.accuracy_score(Y_train, Y_pred))
+print("F1 Score del modelo en training: ", metrics.f1_score(Y_train, Y_pred, pos_label=0))
 print("---------------------------------")
 #%%----------------------------------------------------------------
 # k-Fold Cross Validation
 # Probamos realizar Cross Validation para los Principal Components
 
 k_hyperparam = [1, 3, 5, 10, 15, 20, 30, 50]
-possible_data = [pca_df_binary.drop("class", axis=1), df_pixels, *possible_data, df_pixels_total_grid]
+possible_data_dict = {f'{len(x.columns)} píxeles de la grilla': x for x in possible_data}
+possible_data_dict = {"PCAs": pca_df_binary.drop("class", axis=1), "Píxeles influyentes": df_pixels, "Grilla completa": df_pixels_total_grid, **possible_data_dict}
 best_k_data=[]
 
-for x in possible_data:
+
+f1_scores_dict = {}
+df_f1_scores = pd.DataFrame({"Conjunto": [], "value": [], "k": []})
+
+for x in possible_data_dict.keys():
     f1_scores = []
     for k in k_hyperparam:
         model = KNeighborsClassifier(n_neighbors = k)
-        X=x
+        X=possible_data_dict[x]
         Y=df_binary["class"]
 
         # Reescalamos features entre 0 y 1
         utils.rescale_features(X)
-        f1_scores.append(
-            utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score, pos_label=0)
-        )
+        score = utils.kfold_cross_validation(X, Y, model, score_metric=metrics.f1_score, pos_label=0)
+        f1_scores.append(score)
+        df_f1_scores = df_f1_scores.append({'Conjunto': x, 'value': score, 'k': k}, ignore_index=True)
     # Graficamos las métricas en función al hiperparámetro k
     # y su data
-    plt.plot(k_hyperparam, f1_scores)
-    plt.xlabel("K")
-    plt.ylabel("F1 score")
-    plt.show()
-    plt.close()
+    f1_scores_dict[x] = f1_scores 
+    
     max_score = max(f1_scores)
     best_k = k_hyperparam[np.argmax(f1_scores)]
-    best_k_data.append((best_k,max_score,", ".join(x.columns)))
+    best_k_data.append((best_k, max_score, x))
     print(f"F1 score máximo: {max_score}")
     print(f"Profundidad óptima: {best_k}")
-    print(", ".join(x.columns))
+    print(x)
+
+
+sns.set(rc={'figure.figsize':(11.7,8.27)})
+sns.lineplot(x="k", y='value', hue='Conjunto', data=df_f1_scores, marker="o")
+plt.xlabel("K")
+plt.ylabel("F1 score")
+plt.show()
+plt.close()
 
 print(max(best_k_data, key=lambda x: x[1]))
 
@@ -373,6 +393,8 @@ print("Registros perdidos", len(df)-len(df_undersampled))
 # Ajustamos un clasificador por árbol de decisión
 # para distintas profundidades, ya usando Cross Validation
 
+# Vamos guardando los scores en un DataFrame
+df_scores = pd.DataFrame({"Conjunto": [], "value": [], "Maxima profundidad": []})
 
 # Comenzamos probando con los PCAs
 pca = PCA(n_components=4)
@@ -391,9 +413,9 @@ for max_depth in max_depths:
     X=pca_df.drop("class", axis=1)
     Y=pca_df["class"]
 
-    accuracy_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
-    )
+    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=10)
+    accuracy_scores.append(accuracy_score)
+    df_scores = df_scores.append({"Conjunto": "PCAs", "value": accuracy_score, "Maxima profundidad": max_depth}, ignore_index=True)
 
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
@@ -423,9 +445,9 @@ for max_depth in max_depths:
         max_depth=max_depth
     )
 
-    accuracy_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
-    )
+    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=10)
+    accuracy_scores.append(accuracy_score)
+    df_scores = df_scores.append({"Conjunto": "Grilla completa", "value": accuracy_score, "Maxima profundidad": max_depth}, ignore_index=True)
 
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
@@ -469,9 +491,9 @@ for max_depth in max_depths:
         max_depth=max_depth
     )
 
-    accuracy_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
-    )
+    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=10)
+    accuracy_scores.append(accuracy_score)
+    df_scores = df_scores.append({"Conjunto": "Rectángulo", "value": accuracy_score, "Maxima profundidad": max_depth}, ignore_index=True)
 
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
@@ -485,7 +507,8 @@ best_max_depth = max_depths[np.argmax(accuracy_scores)]
 print(f"Exactitud máxima: {max_accuracy}")
 print(f"Profundidad óptima: {best_max_depth}")
 #%%----------------------------------------------------------------
-# Nos fijamos si los pixeles que mas se usan tienen buena precision en el arbol
+# Nos fijamos si los pixeles que mas se usan tienen mejor rendimiento a la hora de entrenar
+# en el arbol
 pixeles=list(range(0,784))
 strings=[str(x) for x in pixeles]
 
@@ -498,7 +521,9 @@ plt.imshow(reshape_promedios, cmap="hot")
 plt.show()
 plt.close()
 
-promedios_altos=[x if x>100 else 0 for x in promedios]
+
+high_percentile = np.percentile(promedios, 80)
+promedios_altos=[x if x>high_percentile else 0 for x in promedios]
 
 reshape_promedios = []
 for i in range(0, len(promedios_altos), 28):
@@ -507,19 +532,15 @@ plt.imshow(reshape_promedios, cmap="hot")
 plt.show()
 plt.close()
 
-#me fijo cuales pixles tienen promedio alto
+#Me fijo cuales pixles tienen promedio alto
 pixeles_altos=[]
 for i in range(0,784):
     if promedios_altos[i] != 0:
       pixeles_altos.append(i)
-# print(pixeles_altos)
-# print(len(pixeles_altos))
+
 #%%----------------------------------------------------------------
 # Pruebo el modelo
 accuracy_scores = []
-precision_scores = []
-recall_scores = []
-f1_scores = []
 df_pixels_high = df_undersampled.loc[:, (str(pixel) for pixel in pixeles_altos)]
 X=df_pixels_high
 Y=df_undersampled["class"].astype('int')
@@ -530,12 +551,9 @@ for max_depth in max_depths:
         max_depth=max_depth
     )
 
-    accuracy_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score)
-    )
-    precision_scores.append(
-        utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.precision_score, labels=Y.unique(), average="macro")
-    )
+    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=10)
+    accuracy_scores.append(accuracy_score)
+    df_scores = df_scores.append({"Conjunto": "Píxeles con promedio más alto", "value": accuracy_score, "Maxima profundidad": max_depth}, ignore_index=True)
 
 #%%----------------------------------------------------------------
 plt.plot(max_depths, accuracy_scores)
@@ -549,6 +567,15 @@ best_max_depth = max_depths[np.argmax(accuracy_scores)]
 print(f"Exactitud máxima: {max_accuracy}")
 print(f"Profundidad óptima: {best_max_depth}")
 #%%----------------------------------------------------------------
+sns.set(rc={'figure.figsize':(11.7,8.27)})
+sns.lineplot(x="Maxima profundidad", y='value', hue='Conjunto', data=df_scores, marker="o")
+plt.xlabel("Maxima profundidad")
+plt.ylabel("Exactitud")
+plt.show()
+plt.close()
+
+#%%----------------------------------------------------------------
+
 # Comparación de tiempo de ejecución, utilizando la grilla
 
 X=df_pixels_total_grid
