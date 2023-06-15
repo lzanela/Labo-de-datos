@@ -370,7 +370,7 @@ print(max(best_k_data, key=lambda x: x[1]))
 
 #%%----------------------------------------------------------------+
 
-# Observamos que el valor k=10 es el que mejor
+# Observamos que el valor k=3 es el que mejor
 # performa en todas las métricas
 
 #%%----------------------------------------------------------------
@@ -388,7 +388,9 @@ classes_median = counts.median()
 
 df_undersampled = utils.random_subset(df, 'class', int(classes_median))
 classes = df_undersampled["class"]
-counts = classes.value_counts()*100/len(df_undersampled)
+counts = classes.value_counts()
+print("Desvío estándar: ", counts.std())
+counts = counts * 100 / len(df_undersampled)
 counts.plot(kind="bar", xlabel="Clase", ylabel="Ocurrencias")
 plt.show()
 plt.close()
@@ -422,7 +424,7 @@ for max_depth in max_depths:
     X=pca_df.drop("class", axis=1)
     Y=pca_df["class"]
 
-    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=10)
+    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=3)
     accuracy_scores.append(accuracy_score)
     df_scores = df_scores.append({"Conjunto": "PCAs", "value": accuracy_score, "Maxima profundidad": max_depth}, ignore_index=True)
 
@@ -454,7 +456,7 @@ for max_depth in max_depths:
         max_depth=max_depth
     )
 
-    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=10)
+    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=3)
     accuracy_scores.append(accuracy_score)
     df_scores = df_scores.append({"Conjunto": "Grilla completa", "value": accuracy_score, "Maxima profundidad": max_depth}, ignore_index=True)
 
@@ -515,7 +517,7 @@ for max_depth in max_depths:
         max_depth=max_depth
     )
 
-    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=10)
+    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=3)
     accuracy_scores.append(accuracy_score)
     df_scores = df_scores.append({"Conjunto": "Píxeles con promedio más alto", "value": accuracy_score, "Maxima profundidad": max_depth}, ignore_index=True)
 
