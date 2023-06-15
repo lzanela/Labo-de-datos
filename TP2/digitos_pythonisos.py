@@ -27,13 +27,14 @@ rng = np.random.default_rng(RANDOM_SEED)
 
 #%%----------------------------------------------------------------
 
+# Para correr ésta y las siguientes celdas, crear una nueva
+# carpeta llamada 'data', y ubicar los archivos de datos.
+
 df = pd.read_csv('./data/mnist_desarrollo.csv', header=None)
 df.head()
 
 df_test_binario = pd.read_csv('./data/mnist_test_binario.csv', header=None)
 df_test = pd.read_csv('./data/mnist_test.csv', header=None)
-
-# df_test_binario.drop("Unnamed: 0", axis=1, inplace=True)
 
 #%%----------------------------------------------------------------
 # Podemos deducir que la primera columna corresponde a las clases
@@ -470,52 +471,7 @@ print(f"Exactitud máxima: {max_accuracy}")
 print(f"Profundidad óptima: {best_max_depth}")
 
 #%%----------------------------------------------------------------
-# Hacemos lo mismo con el rectangulo del medio
-# Me armo un rectangulo de 14x22
-# Usamos otras profundidades por el tiempo de ejecucion
-
-max_depths = [5, 7, 10, 15, 20]
-rectangulo = []
-for i in range(2, 26):
-    rectangulo += list(range(6+28*i, 22+28*i))
-positions = np.zeros(784)
-for pixel in rectangulo:
-    positions[pixel] = 1
-
-# Graficamos las posiciones del rectangulo a analizar
-plt.imshow(positions.reshape(28, 28), cmap="hot")
-plt.show()
-plt.close()
-
-# Pruebo el modelo
-accuracy_scores = []
-df_pixels_rect = df_undersampled.loc[:, (str(pixel) for pixel in rectangulo)]
-X=df_pixels_rect
-Y=df_undersampled["class"].astype('int')
-
-for max_depth in max_depths:
-    dt_model = DecisionTreeClassifier(
-        criterion = "entropy",
-        max_depth=max_depth
-    )
-
-    accuracy_score = utils.kfold_cross_validation(X, Y, dt_model, score_metric=metrics.accuracy_score, k=10)
-    accuracy_scores.append(accuracy_score)
-    df_scores = df_scores.append({"Conjunto": "Rectángulo", "value": accuracy_score, "Maxima profundidad": max_depth}, ignore_index=True)
-
-#%%----------------------------------------------------------------
-plt.plot(max_depths, accuracy_scores)
-plt.xlabel("Profundidad máxima")
-plt.ylabel("Exactitud")
-plt.show()
-plt.close()
-
-max_accuracy = max(accuracy_scores)
-best_max_depth = max_depths[np.argmax(accuracy_scores)]
-print(f"Exactitud máxima: {max_accuracy}")
-print(f"Profundidad óptima: {best_max_depth}")
-#%%----------------------------------------------------------------
-# Nos fijamos si los pixeles que mas se usan tienen mejor rendimiento a la hora
+# Nos fijamos si los pixeles que más se usan tienen mejor rendimiento a la hora
 # de entrenar el arbol
 pixeles=list(range(0,784))
 strings=[str(x) for x in pixeles]
@@ -615,7 +571,7 @@ end = time.time()
 print("Exactitud del modelo:", metrics.accuracy_score(Y_test, Y_pred))
 print("Tiempo de entrenamiento y predicción para el Árbol de decisión: ", end - start)
 
-# %%
+#%%----------------------------------------------------------------
 # Modelos definitivos
 
 # Seleccionamos los modelos que mejor rendimiento obtuvieron,
@@ -668,3 +624,5 @@ print("Exactitud del modelo en test:", metrics.accuracy_score(Y_test, Y_pred))
 Y_pred = dt_model.predict(X_train)
 
 print("Exactitud del modelo en training:", metrics.accuracy_score(Y_train, Y_pred))
+
+# %%
