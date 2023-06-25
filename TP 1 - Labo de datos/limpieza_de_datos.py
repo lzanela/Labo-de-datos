@@ -14,14 +14,14 @@ Sección: Limpieza de datos.
 Prerequisito para correr el presente script: Tener instalado la librería `unidecode`, 
 además de las utilizadas en la materia.
 """
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 import pandas as pd
 from inline_sql import sql, sql_val
 import numpy as np
 
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 SOURCES_ROOT_PATH = "./TablasOriginales/"
 
@@ -48,7 +48,7 @@ ORIGINAL_DEPTOS_COUNT = df_deptos.shape[0]
 ORIGINAL_SALARIOS_COUNT = df_salarios.shape[0]
 ORIGINAL_LOCALIDADES_COUNT = df_localidades.shape[0]
 ORIGINAL_CLAE2_COUNT = df_clae2.shape[0]
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 
 """
@@ -63,7 +63,7 @@ df_padron.replace(
 df_localidades.replace([""], np.nan, inplace=True)
 df_salarios.replace([-99], np.nan, inplace=True)
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """Comenzaremos intentando pasar modelos extraídos de las fuentes a 1FN. Primero, exploramos la fuente Padrón. 
 
@@ -84,18 +84,21 @@ registros = sql ^ consulta_registros
 registros_nulos = registros.iloc[0]["num"]
 
 print("Registros nulos: ", registros_nulos / ORIGINAL_PADRON_COUNT)
-print("Registros repetidos no nulos (con respecto a los no nulos)", sum(registros.iloc[1:]["num"]) / (ORIGINAL_PADRON_COUNT-registros_nulos))
+print(
+    "Registros repetidos no nulos (con respecto a los no nulos)",
+    sum(registros.iloc[1:]["num"]) / (ORIGINAL_PADRON_COUNT - registros_nulos),
+)
 print("Registros resultantes: ", registros.shape[0])
 registros.head()
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """Vemos que hay una gran cantidad de establecimientos con valor NaN. 
 Hemos notado que son aquellos que poseen como valor `Comercializadores` o 
 `Elaboradores` en la columna `categoria`. Podríamos diferenciarlos gracias 
 al atributo `razon_social`.
-""" 
-#%%----------------------------------------------------------------
+"""
+# %%----------------------------------------------------------------
 
 consulta_registros = """
                 SELECT count(*) as num, establecimiento, razon_social
@@ -105,34 +108,96 @@ consulta_registros = """
             """
 
 registros = sql ^ consulta_registros
-registros_nulos = registros.loc[(registros["establecimiento"].isna()) | (registros["razon_social"].isna()), "num"]
+registros_nulos = registros.loc[
+    (registros["establecimiento"].isna()) | (registros["razon_social"].isna()), "num"
+]
 registros_no_nulos = registros.loc[
-    (registros["num"] >= 2) & (~registros["establecimiento"].isna()) & (~registros["razon_social"].isna()), "num"
+    (registros["num"] >= 2)
+    & (~registros["establecimiento"].isna())
+    & (~registros["razon_social"].isna()),
+    "num",
 ]
 print("Registros nulos: ", sum(registros_nulos) / ORIGINAL_PADRON_COUNT)
-print("Registros repetidos no nulos (con respecto a los no nulos)", sum(registros_no_nulos) / ORIGINAL_PADRON_COUNT)
+print(
+    "Registros repetidos no nulos (con respecto a los no nulos)",
+    sum(registros_no_nulos) / ORIGINAL_PADRON_COUNT,
+)
 print("Registros resultantes: ", registros.shape[0])
-print("Registro no nulo repetido", registros_no_nulos)
+print(
+    "Registro no nulo repetido",
+    registros.loc[
+        (registros["num"] >= 2)
+        & (~registros["establecimiento"].isna())
+        & (~registros["razon_social"].isna())
+    ],
+)
 registros.head()
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 Como podemos observar, hay un sólo registro con valores no nulos de {establecimiento, razon_social}
-Finalmente, decidimos indexar cada registro para utilizar el índice como clave.
+Por lo que ésta sería una buena Clave Candidata
 Primero, limpiaremos la tabla y la normalizaremos, al mismo tiempo. Comenzaremos 
 seleccionando todos registros que difieran en todo el conjunto de atributos salvo
 "productos". Puesto que consideramos que es un error de carga de datos, en estos caso.
-Luego, asignaremos un índice.
 """
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
+consulta_registros = """
+                SELECT count(*) as num
+                FROM df_padron
+                GROUP BY provincia_id, 
+                provincia, 
+                departamento, 
+                localidad, 
+                rubro,
+                categoria_id, 
+                categoria_desc, 
+                Certificadora_id, 
+                certificadora_deno, 
+                razon_social, 
+                establecimiento
+                HAVING num >= 2
+                ORDER BY num DESC
+            """
+
+registros = sql ^ consulta_registros
+print(
+    "Porcentaje de registros que comparten todos los valores excepto productos",
+    sum(registros["num"]) * 100 / ORIGINAL_PADRON_COUNT,
+)
+# %%----------------------------------------------------------------
+# Aproximadamente un 2% de los registros comparten todos los valores excepto,
+# el valor de "productos". Para esos casos, nos quedamos solo con la primera aparición.
 
 df_padron = df_padron.drop_duplicates(
-    subset=set(df_padron.columns).difference(['productos'], keep="first")
+    subset=set(df_padron.columns).difference(["productos"]), keep="first"
 )
 
-df_padron["id"] = df_padron.index
-df_padron.head()
-#%%----------------------------------------------------------------
+
+# %%----------------------------------------------------------------
+# Le asignamos un valor a "establecimiento" para los registros que no poseen valor.
+# El valor será "{Nombre de la razón social} {indice}" donde el
+# índice es la n-ésima aparición de la razón social.
+
+counts = {}
+
+for i, row in df_padron.iterrows():
+    razon_social_value = row["razon_social"]
+    establecimiento_value = row["establecimiento"]
+
+    if pd.isnull(establecimiento_value):
+        if razon_social_value in counts:
+            counts[razon_social_value] += 1
+        else:
+            counts[razon_social_value] = 1
+
+        # Set the value of B
+        df_padron.at[
+            i, "establecimiento"
+        ] = f"{razon_social_value} {counts[razon_social_value]}"
+
+
+# %%----------------------------------------------------------------
 
 """
 Analizamos otros problemas de calidad puede llegar a haber
@@ -180,7 +245,7 @@ categorias_repetidas = sql ^ consulta4
 print(
     f"Cantidad de tuplas con distintas certificadora_deno y mismo Certificadora_id: {len(sql ^ consulta3)}"
 )
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Problema: Localizar a los operadores
@@ -199,6 +264,7 @@ lo más posible esta correspondencia.
 # más flexibilidad para llevar a cabo la limpieza de los datos.
 
 from unidecode import unidecode
+
 
 # Por cuestiones de encoding, el caracter "Ñ" aparece como "ï¿½". Esta función
 # lo reemplaza por "Ñ", además de reemplazar los caracteres en minúscula por
@@ -260,21 +326,24 @@ df_padron["departamento"] = df_padron["departamento"].replace(
     "CIUDAD AUTONOMA BUENOS AIRES", "CIUDAD AUTONOMA DE BUENOS AIRES"
 )
 df_localidades = df_localidades.apply(clean_buenos_aires, axis=1)
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 Hay algunos casos de departamentos en Localidades Censales que no están 
 en el Diccionario de Departamentos.
 """
 
-deptos=df_deptos["codigo_departamento_indec"].unique()
+deptos = df_deptos["codigo_departamento_indec"].unique()
 deptos_erroneos = df_localidades.loc[
-    ~df_localidades["departamento_id"].isin(deptos), ("departamento_nombre", "departamento_id")
+    ~df_localidades["departamento_id"].isin(deptos),
+    ("departamento_nombre", "departamento_id"),
 ]
 cant = len(deptos_erroneos["departamento_id"].unique())
 total = len(df_localidades["departamento_id"].unique())
-print(f"Porcentaje de departamentos en Localidades Censales que no están incluidos: {cant*100/total} %")
+print(
+    f"Porcentaje de departamentos en Localidades Censales que no están incluidos: {cant*100/total} %"
+)
 deptos_erroneos
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 Se observa que es una pequeña proporción. Los corregimos a mano, 
 ya que asumimos más confiabilidad para la fuente de
@@ -290,7 +359,7 @@ df_localidades.loc[
     df_localidades["departamento_nombre"] == "RIO GRANDE", "departamento_id"
 ] = 94007
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """Luego de normalizar, evaluaremos el porcentaje de correspondencias"""
 
@@ -310,7 +379,7 @@ consulta_correspondencias = """
            """
 correspondencias = sql ^ consulta_correspondencias
 correspondencias
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Específicamente, sólo el 55% posee correspondencia. Por lo tanto, intentaremos 
@@ -336,7 +405,7 @@ for depto in deptos_padron:
         ].iloc[0]
         dict_deptos[depto] = depto_id
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """Hemos notado que algunos departamentos corresponden a localidades.
 Por eso, armamos lista de localidades y chequeamos si los departamentos del Padrón 
@@ -349,7 +418,6 @@ deptos_con_nombre_de_loc = []
 deptos_erroneos2 = []
 for depto in deptos_erroneos:
     if depto in localidades:
-
         # Buscamos el ID del departamento correspondiente a la localidad conseguida
         dict_deptos[depto] = df_localidades[df_localidades["nombre"] == depto][
             "departamento_id"
@@ -380,7 +448,7 @@ for depto in deptos_erroneos2:
 
 print(f"# Departamentos erróneos restantes: {len(deptos_erroneos3)}")
 print("Listado de departamentos erroneos restantes: ", deptos_erroneos3)
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """Vemos que quedan 72 departamentos erróneos únicos.
 """
@@ -391,7 +459,7 @@ print(
     (df_padron[df_padron["departamento"].isin(deptos_erroneos3)].shape[0]),
 )
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Luego observamos que 103 de los 1395 operadores en el padrón poseen un departamento 
@@ -410,7 +478,7 @@ df_padron["departamento_id"] = df_padron["departamento"].apply(
     lambda depto: dict_deptos.get(depto)
 )
 df_padron = df_padron.astype({"departamento_id": int})
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Problema: 
@@ -428,7 +496,7 @@ print(
     str(round(cantidad_de_localidades_nan * 100 / cantidad_de_localidades_padron, 2))
     + "%",
 )
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Esto representa una gran parte de los operadores registrados. Además, existen localidades 
@@ -447,7 +515,7 @@ df_padron.loc[
     "localidad",
 ] = np.nan
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Y decidimos, para cada operador que no posea localidad, asignarle como localidad a 
@@ -491,7 +559,7 @@ print(
     str(round(cantidad_de_localidades_nan * 100 / cantidad_de_localidades_padron, 2))
     + "%",
 )
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Ya les asignamos una localidad a cada uno de los operadores. Ahora creamos 
@@ -505,7 +573,7 @@ df_padron["localidad_id"] = df_padron["localidad"].apply(
 )
 df_padron = df_padron.astype({"localidad_id": int})
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Problema: 
@@ -522,15 +590,19 @@ una `clae2` para poder matchearlos al analizar los datos.
 rubros = df_padron["rubro"].unique()
 print(rubros)
 
-#%%----------------------------------------------------------------
-# Calculamos porcentaje de rubros que no poseen correspondencia con actividades 
-# registradas por el INDEC. 
+# %%----------------------------------------------------------------
+# Calculamos porcentaje de rubros que no poseen correspondencia con actividades
+# registradas por el INDEC.
 actividades = df_clae2["clae2_desc"].unique()
 
-rubros_sin_correspondencia = df_padron.loc[df_padron["rubro"].isin(actividades), "rubro"].unique()
+rubros_sin_correspondencia = df_padron.loc[
+    df_padron["rubro"].isin(actividades), "rubro"
+].unique()
 
-print(f"Porcentaje de rubros que no poseen correspondencia con el INDEC: {len(rubros_sin_correspondencia)*100/len(rubros)}")
-#%%----------------------------------------------------------------
+print(
+    f"Porcentaje de rubros que no poseen correspondencia con el INDEC: {len(rubros_sin_correspondencia)*100/len(rubros)}"
+)
+# %%----------------------------------------------------------------
 
 # Hemos notado que algunas tuplas poseen más de un rubro.
 mas_de_un_rubro = df_padron["rubro"].str.contains(",").value_counts()
@@ -538,7 +610,7 @@ print("Columnas que poseen más de un rubro")
 print(mas_de_un_rubro)
 print("Porcentaje: ", mas_de_un_rubro)
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Creamos un diccionario a mano. Los rubros que poseen mas de un sector, se les 
@@ -645,7 +717,7 @@ dicc_rubros = {
 
 df_padron["clae2"] = df_padron["rubro"].apply(lambda rubro: dicc_rubros.get(rubro))
 df_padron = df_padron.astype({"clae2": int})
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Problema: 
@@ -682,16 +754,24 @@ df_productos = pd.DataFrame({"producto": list(productos)})
 df_productos.sort_values(by="producto")
 
 # Creamos tabla intermedia
-operadores = df_padron["id"].values
+operadores = list(
+    df_padron.loc[:, ("establecimiento", "razon_social")].itertuples(index=False)
+)
 mapping = []
 
 for i in range(len(operadores)):
     for producto in productos_raw[i]:
-        mapping.append({"operador_id": i, "producto": producto})
+        mapping.append(
+            {
+                "establecimiento": operadores[i].establecimiento,
+                "razon_social": operadores[i].razon_social,
+                "producto": producto,
+            }
+        )
 
 producto_por_operador = pd.DataFrame(mapping)
-producto_por_operador.sort_values(by="operador_id")
-#%%----------------------------------------------------------------
+producto_por_operador.sort_values(by=["razon_social", "establecimiento"])
+# %%----------------------------------------------------------------
 
 """Luego, observamos la fuente Salarios"""
 
@@ -703,7 +783,7 @@ print(
     str(round(counts[np.nan] * 100 / ORIGINAL_SALARIOS_COUNT, 2)) + "%",
 )
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Existe una gran cantidad de valores NaN en la columna w_median. 
@@ -714,7 +794,7 @@ una cantidad considerable para nuesto análisis.
 
 df_salarios.dropna(inplace=True)
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Ahora, ya estamos en condiciones de dividir las tablas, para conseguir un diseño 3FN, 
@@ -724,14 +804,13 @@ respetando las dependencias funcionales que se encuentran en el informe.
 # Tabla Operador
 consulta_operador = """
                 SELECT DISTINCT
-                  id,
+                  razon_social,
+                  establecimiento,
                   localidad_id,
                   clae2,
                   Certificadora_id as certificadora_id,
                   categoria_id,
                   rubro,
-                  razon_social,
-                  establecimiento,
                 FROM df_padron
                 ORDER BY localidad_id
             """
@@ -739,7 +818,7 @@ consulta_operador = """
 df_operador = sql ^ consulta_operador
 df_operador.head()
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 # Tabla Certificadora
 consulta_certificadora = """
@@ -761,7 +840,7 @@ consulta_categoria = """
 
 df_categoria = sql ^ consulta_categoria
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Para las siguientes tablas, de divisiones políticas, vale aclarar que la misma 
@@ -865,7 +944,7 @@ consulta_registro_salarial = """
 df_registro_salarial = sql ^ consulta_registro_salarial
 
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 Exportación del modelo

@@ -13,7 +13,7 @@ Sección: Análisis de los Datos.
 
 """
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 import pandas as pd
 from inline_sql import sql, sql_val
 import matplotlib.pyplot as plt
@@ -51,7 +51,7 @@ df_provincia = pd.read_csv(provincia_csv, encoding="utf-8")
 df_categoria = pd.read_csv(categoria_csv, encoding="utf-8")
 
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 
 Responder las siguientes consultas a través de consultas SQL:
@@ -78,7 +78,7 @@ operadores_por_provincia = sql ^ consultaSQL
 
 print("El listado de cantidad de operadores por provincia")
 print(operadores_por_provincia)
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 Como es conocido, hay 24 provincias en Argentina, que es el tamaño del dataframe de 
 operadores por provincia conseguido. Por lo tanto, no existen provincias sin operadores. 
@@ -87,7 +87,7 @@ Lo comprobamos.
 
 consultaSQL = """
                    SELECT DISTINCT
-                    count(*) AS cant_operadores, 
+                    count(concat(oper.establecimiento, oper.razon_social)) AS cant_operadores, 
                     prov.nombre AS provincia
                    FROM df_operador oper
                    INNER JOIN df_localidad loc
@@ -102,7 +102,7 @@ consultaSQL = """
 
 print("El listado de provincias sin operadores")
 print(sql ^ consultaSQL)
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 ii) ¿Existen departamentos que no presentan Operadores Orgánicos
 Certificados? ¿En caso de que sí, cuántos y cuáles son?
@@ -111,15 +111,16 @@ Certificados? ¿En caso de que sí, cuántos y cuáles son?
 
 consultaSQL = """
                    SELECT DISTINCT
-                    count(oper.id) AS cant_operadores, 
+                    count(concat(oper.establecimiento, oper.razon_social)) AS cant_operadores,
+                    depto.id as departamento_id, 
                     depto.nombre AS departamento
-                   FROM df_operador oper
+                   FROM (df_operador oper
                    INNER JOIN df_localidad loc
-                   ON oper.localidad_id=loc.id
+                   ON oper.localidad_id=loc.id)
                    RIGHT OUTER JOIN df_departamento depto
                    ON depto.id = loc.departamento_id
-                   GROUP BY departamento
-                   HAVING cant_operadores = 0
+                   GROUP BY depto.id, depto.nombre
+                   HAVING cant_operadores=0
               """
 
 operadores_por_departamento = sql ^ consultaSQL
@@ -129,12 +130,12 @@ print(
 )
 
 print("El listado de departamentos sin operadores es")
-print(operadores_por_departamento["departamento"])
+print(operadores_por_departamento["cant_operadores"])
 
 departamentos_sin_operadores = list(operadores_por_departamento["departamento"])
-departamentos_sin_operadores = ', '.join(departamentos_sin_operadores)
+departamentos_sin_operadores = ", ".join(departamentos_sin_operadores)
 print(departamentos_sin_operadores)
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """iii) ¿Cuál es la actividad que más operadores tiene?"""
 
 consultaSQL = """
@@ -144,7 +145,7 @@ consultaSQL = """
                     ANY_VALUE(clae2) AS clae2
                    FROM (
                      SELECT 
-                      count(oper.id) as cant_operadores,
+                      count(*) as cant_operadores,
                       sector.clae2_desc as descripcion,
                       sector.clae2 AS clae2
                      FROM df_operador oper
@@ -157,7 +158,7 @@ consultaSQL = """
 actividad_con_mas_operadores = sql ^ consultaSQL
 
 actividad_con_mas_operadores
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """iv) ¿Cuál fue el salario promedio de esa actividad en 2022? (si hay varios
 registros de salario, mostrar el más actual de ese año)
 """
@@ -176,7 +177,7 @@ consultaSQL = """
 prom_salarial_2022 = sql ^ consultaSQL
 
 prom_salarial_2022
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 v) ¿Cuál es el promedio anual de los salarios en Argentina y cual es su
 desvío?, ¿Y a nivel provincial? ¿Se les ocurre una forma de que sean
@@ -221,7 +222,7 @@ consultaSQL = """
 prom_salarial_nacional = sql ^ consultaSQL
 
 prom_salarial_nacional
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 consultaSQL = """
                    SELECT
                     ROUND(STDDEV(promedio), 2) as desvio,
@@ -263,7 +264,7 @@ prom_salarial_provincial = sql ^ consultaSQL
 
 prom_salarial_provincial
 
-#%%
+# %%
 consultaSQL = """
                    SELECT
                     ROUND(STDDEV(promedio), 2) as desvio,
@@ -273,7 +274,7 @@ desvio_promedio_provincial = sql ^ consultaSQL
 
 desvio_promedio_provincial
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 
 GRAFICOS
@@ -285,7 +286,8 @@ i) Cantidad de Operadores por provincia.
 
 consultaSQL = """
                    SELECT DISTINCT 
-                    oper.id AS id,
+                    oper.establecimiento AS establecimiento,
+                    oper.razon_social AS razon_social,
                     oper.localidad_id AS localidad, 
                     loc.departamento_id AS departamento, 
                     oper.clae2,
@@ -301,7 +303,7 @@ consultaSQL = """
 operadores_localizados = sql ^ consultaSQL
 
 consultaSQL = """
-                   SELECT provincia, count(id) AS cantidad_operadores
+                   SELECT provincia, count(*) AS cantidad_operadores
                    FROM operadores_localizados
                    GROUP BY provincia
               """
@@ -312,29 +314,30 @@ sns.barplot(data=prov_cant_oper, y="provincia", x="cantidad_operadores").set(
 )
 plt.show()
 plt.close()
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """ii) Boxplot, por cada provincia, donde se pueda observar la cantidad de
 productos por operador.
 """
 
 consultaSQL = """
                    SELECT 
-                    operador_id AS id, 
+                    establecimiento,
+                    razon_social,
                     count(*) AS cantidad_productos
                    FROM df_prod_operador
-                   GROUP BY operador_id;
+                   GROUP BY establecimiento, razon_social;
               """
 operador_cant_prod = sql ^ consultaSQL
 
 consultaSQL = """
                    SELECT DISTINCT 
-                    oper.id, 
+                    oper.establecimiento,
+                    oper.razon_social, 
                     oper.provincia, 
                     prod.cantidad_productos
                    FROM operadores_localizados oper
                    INNER JOIN operador_cant_prod prod
-                   ON oper.id=prod.id
-                   ORDER BY oper.id 
+                   ON oper.establecimiento=prod.establecimiento AND oper.razon_social=prod.razon_social
               """
 operador_prov_cant_prod = sql ^ consultaSQL
 
@@ -343,7 +346,7 @@ sns.boxplot(data=operador_prov_cant_prod, y="provincia", x="cantidad_productos")
 )
 plt.show()
 plt.close()
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 Encontramos con algunos outliers, principalmente por arriba. E incluso algunas 
 provincias donde parecería que la distribución es uniforme, como Neuquén. Los mismos 
@@ -365,7 +368,7 @@ sns.boxplot(data=operador_prov_cant_prod, y="provincia", x="cantidad_productos")
 )
 plt.show()
 plt.close()
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 
 """
 iii) Relación entre cantidad de emprendimientos certificados de cada provincia y 
@@ -392,7 +395,7 @@ consultaSQL = """
 prov_clae2_salario = sql ^ consultaSQL
 
 consultaSQL = """
-                   SELECT provincia, count(distinct id) AS cantidad_operadores, clae2
+                   SELECT provincia, count(concat(establecimiento, razon_social)) AS cantidad_operadores, clae2
                    FROM operadores_localizados
                    GROUP BY provincia, clae2
               """
@@ -419,7 +422,7 @@ sns.scatterplot(
 plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.75))
 plt.show()
 plt.close()
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """Realizamos un nuevo gráfico descartando los casos que posean más de 100 operadores."""
 
 consultaSQL = """
@@ -445,7 +448,7 @@ plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.75))
 plt.show()
 plt.close()
 
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 En el gráfico de arriba, cada punto representa la relación entre salario promedio y 
 cantidad de operadores para cada par `provincia-actividad`.
@@ -453,7 +456,7 @@ cantidad de operadores para cada par `provincia-actividad`.
 
 consultaSQL = """
                    SELECT
-                     COUNT(DISTINCT oper.id) as cantidad_operadores,
+                     COUNT(DISTINCT concat(oper.establecimiento, oper.razon_social)) as cantidad_operadores,
                      oper.provincia AS provincia,
                      ROUND(AVG(salarios.w_median), 2) AS salario_promedio
                    FROM df_salarios salarios
@@ -474,12 +477,12 @@ sns.scatterplot(
 plt.legend(loc="lower center", bbox_to_anchor=(0.5, 1.05))
 plt.show()
 plt.close()
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """Ahora por actividad"""
 
 consultaSQL = """
                    SELECT
-                     COUNT(DISTINCT oper.id) as cantidad_operadores,
+                     COUNT(DISTINCT concat(oper.establecimiento, oper.razon_social)) as cantidad_operadores,
                      sector.clae2_desc AS actividad,
                      ROUND(AVG(salarios.w_median), 2) AS salario_promedio
                    FROM df_salarios salarios
@@ -501,7 +504,7 @@ sns.scatterplot(
 plt.legend(loc="lower center", bbox_to_anchor=(0.5, 1.05))
 plt.show()
 plt.close()
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 Este conjunto de gráficos nos permite observar que, en términos generales, a medida 
 que disminuye la cantidad de operadores, el salario promedio aumenta. Da una idea de 
@@ -542,7 +545,7 @@ consultaSQL = """
 
 provs_por_fecha = sql ^ consultaSQL
 provs_por_fecha
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 """
 Resulta que para la fecha 2022-12-01 las 24 provincias cargaron datos, entonces usaremos 
 esa fecha. También, para estudiar la distribución, nos interesaría descartar los salarios 
@@ -564,7 +567,7 @@ ult_sal_prov
 sns.violinplot(data=ult_sal_prov, x="salario", y="provincia")
 plt.show()
 plt.close()
-#%%----------------------------------------------------------------
+# %%----------------------------------------------------------------
 consultaSQL = """
                    SELECT provincia, ROUND(AVG(salario), 2) AS promedio_provincia
                    FROM ult_sal_prov
