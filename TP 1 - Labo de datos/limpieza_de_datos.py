@@ -14,6 +14,7 @@ Sección: Limpieza de datos.
 Prerequisito para correr el presente script: Tener instalado la librería `unidecode`, 
 además de las utilizadas en la materia.
 """
+#%%----------------------------------------------------------------
 
 import pandas as pd
 from inline_sql import sql, sql_val
@@ -80,7 +81,10 @@ consulta_registros = """
             """
 
 registros = sql ^ consulta_registros
+registros_nulos = registros.iloc[0]["num"]
 
+print("Registros nulos: ", registros_nulos / ORIGINAL_PADRON_COUNT)
+print("Registros repetidos no nulos (con respecto a los no nulos)", sum(registros.iloc[1:]["num"]) / (ORIGINAL_PADRON_COUNT-registros_nulos))
 print("Registros resultantes: ", registros.shape[0])
 registros.head()
 
@@ -89,53 +93,49 @@ registros.head()
 """Vemos que hay una gran cantidad de establecimientos con valor NaN. 
 Hemos notado que son aquellos que poseen como valor `Comercializadores` o 
 `Elaboradores` en la columna `categoria`. Podríamos diferenciarlos gracias 
-al atributo `razon_social`. Sin embargo, seguían habiendo repeticiones.
-
-Finalmente, decidimos indexar cada registro para utilizar el índice como clave.
-Primero, limpiaremos la tabla y la normalizaremos, al mismo tiempo. Comenzaremos 
-eliminando las primeras dos columnas, dado que no aportan información a la tabla 
-(habiendo primero chequeado que los únicos valores que aparecen en las columnas pais 
-y pais_id son ARGENTINA y 32 respectivamente). Aprovechamos, usando el DISTINCT, 
-para borrar las filas repetidas. Luego, asignaremos un índice.
-"""
-
-# Eliminamos las primeras dos columnas, dado que no aportan información a 
-# la tabla (habiendo primero chequeado que los únicos valores que aparecen
-# en las columnas pais y pais_id son ARGENTINA y 32 respectivamente). 
-# Aprovechamos, usando el DISTINCT, para borrar las filas repetidas.
-
-consulta0 = """
-              SELECT DISTINCT pais_id, pais
-              FROM df_padron
-           """
-print(f"Posibles tuplas (pais_id, pais):\n {(sql ^ consulta0)}")
+al atributo `razon_social`.
+""" 
 #%%----------------------------------------------------------------
 
+consulta_registros = """
+                SELECT count(*) as num, establecimiento, razon_social
+                FROM df_padron
+                GROUP BY establecimiento, razon_social
+                ORDER BY num DESC
+            """
 
-consulta1 = """
-              SELECT DISTINCT 
-                provincia_id, 
-                provincia, 
-                departamento, 
-                localidad, 
-                rubro, 
-                productos, 
-                categoria_id, 
-                categoria_desc, 
-                Certificadora_id, 
-                certificadora_deno, 
-                razon_social, 
-                establecimiento
-              FROM df_padron
-           """
-df_padron = sql ^ consulta1
+registros = sql ^ consulta_registros
+registros_nulos = registros.loc[(registros["establecimiento"].isna()) | (registros["razon_social"].isna()), "num"]
+registros_no_nulos = registros.loc[
+    (registros["num"] >= 2) & (~registros["establecimiento"].isna()) & (~registros["razon_social"].isna()), "num"
+]
+print("Registros nulos: ", sum(registros_nulos) / ORIGINAL_PADRON_COUNT)
+print("Registros repetidos no nulos (con respecto a los no nulos)", sum(registros_no_nulos) / ORIGINAL_PADRON_COUNT)
+print("Registros resultantes: ", registros.shape[0])
+print("Registro no nulo repetido", registros_no_nulos)
+registros.head()
+
+#%%----------------------------------------------------------------
+"""
+Como podemos observar, hay un sólo registro con valores no nulos de {establecimiento, razon_social}
+Finalmente, decidimos indexar cada registro para utilizar el índice como clave.
+Primero, limpiaremos la tabla y la normalizaremos, al mismo tiempo. Comenzaremos 
+seleccionando todos registros que difieran en todo el conjunto de atributos salvo
+"productos". Puesto que consideramos que es un error de carga de datos, en estos caso.
+Luego, asignaremos un índice.
+"""
+#%%----------------------------------------------------------------
+
+df_padron = df_padron.drop_duplicates(
+    subset=set(df_padron.columns).difference(['productos'], keep="first")
+)
 
 df_padron["id"] = df_padron.index
 df_padron.head()
 #%%----------------------------------------------------------------
 
 """
-Analizamos qué errores de inconsistencias puede llegar a haber
+Analizamos otros problemas de calidad puede llegar a haber
 """
 
 # Corroboramos que cada provincia se corresponda con un único id_provincia
