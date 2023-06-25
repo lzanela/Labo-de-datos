@@ -88,7 +88,6 @@ print(
     "Registros repetidos no nulos (con respecto a los no nulos)",
     sum(registros.iloc[1:]["num"]) / (ORIGINAL_PADRON_COUNT - registros_nulos),
 )
-print("Registros resultantes: ", registros.shape[0])
 registros.head()
 
 # %%----------------------------------------------------------------
@@ -122,7 +121,6 @@ print(
     "Registros repetidos no nulos (con respecto a los no nulos)",
     sum(registros_no_nulos) / ORIGINAL_PADRON_COUNT,
 )
-print("Registros resultantes: ", registros.shape[0])
 print(
     "Registro no nulo repetido",
     registros.loc[
@@ -963,4 +961,4 @@ df_categoria.to_csv(f"{MODEL_ROOT_PATH}categoria.csv", index=False)
 df_certificadora.to_csv(f"{MODEL_ROOT_PATH}certificadora.csv", index=False)
 df_operador.to_csv(f"{MODEL_ROOT_PATH}operador.csv", index=False)
 df_productos.to_csv(f"{MODEL_ROOT_PATH}producto.csv", index=False)
-producto_por_operador.to_csv(f"{MODEL_ROOT_PATH}producto_por_operador.csv", index=False)
+producto_por_operador.to_csv(f"{MODEL_ROOT_PATH}produce.csv", index=False)
