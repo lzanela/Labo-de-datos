@@ -118,8 +118,7 @@ registros_no_nulos = registros.loc[
 ]
 print("Registros nulos: ", sum(registros_nulos) / ORIGINAL_PADRON_COUNT)
 print(
-    "Registros repetidos no nulos (con respecto a los no nulos)",
-    sum(registros_no_nulos) / ORIGINAL_PADRON_COUNT,
+    "Registros repetidos no nulos", sum(registros_no_nulos),
 )
 print(
     "Registro no nulo repetido",
@@ -189,7 +188,6 @@ for i, row in df_padron.iterrows():
         else:
             counts[razon_social_value] = 1
 
-        # Set the value of B
         df_padron.at[
             i, "establecimiento"
         ] = f"{razon_social_value} {counts[razon_social_value]}"
